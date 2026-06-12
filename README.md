@@ -1,6 +1,6 @@
-# Grover Qiskit Streamlit Visualizer
+﻿# Grover Qiskit Streamlit Visualizer
 
-这是一个面向课程选题五的交互式演示工程：**Grover 搜索算法中“振幅放大”过程的步进式可视化展示**。
+这是一个面向浙江大学《量子信息基础》课程，个人作业选题五的交互式演示工程：**Grover 搜索算法中“振幅放大”过程的步进式可视化展示**。
 
 工程采用：
 
@@ -10,6 +10,14 @@
 - **Plotly**：绘制概率幅图、概率图、目标态概率曲线、测量统计图、交互式 3D 步进概率图和宽画布电路操作视图；
 - **Streamlit**：构建可视化交互界面。
 
+## \*在线演示
+
+本项目目前免费署到 Streamlit Community Cloud，可通过以下链接直接访问：
+
+https://zju-grover-visualizer-7qrbuk87raprvngeew75ml.streamlit.app/
+
+无需本地安装 Python、Qiskit 或 Streamlit，打开网页后即可交互式体验 Grover 搜索算法中“振幅放大”过程的步进式可视化展示。
+
 ## 1. 安装依赖
 
 ```bash
@@ -18,7 +26,7 @@ pip install -r requirements.txt
 
 如果 `qiskit-aer` 安装失败，仍然可以使用 statevector 中间态展示和电路图；只是测量 `counts` 统计功能不可用。
 
-## 2. 运行交互式界面
+## 2. 本地运行交互式界面
 
 ```bash
 streamlit run app.py
@@ -80,23 +88,13 @@ grover_qiskit_streamlit/
 
 > 本项目采用 Streamlit 构建交互式 Web 界面，用户可以选择量子比特数、目标态和 Grover 迭代次数。程序基于 Qiskit 构造对应量子电路，并在每次 Oracle 与 Diffusion 操作后提取 statevector。界面通过滑动条实现步进式展示，分别绘制概率幅分布、测量概率分布、目标态概率变化曲线和 Plotly 交互式 3D 概率历史图，从而直观呈现 Grover 算法中的振幅放大过程。
 
-
-## 交互界面改进说明
+## 7. 本版本界面修正
 
 本版本针对课堂展示界面做了进一步调整：
 
 1. “选择演化步骤”滑块已移动到主页面的“当前展示”区域，便于拖动时同步观察概率幅和概率变化。
 2. 概率幅柱状图、概率柱状图、目标态概率曲线、测量 counts 统计均改为 Plotly 交互式图表，支持悬停查看精确数值，并可下载为 HTML。
 3. Qiskit 标准电路图仍保留为官方静态电路图；同时新增 Plotly 交互式电路操作视图和操作表，可悬停查看每一步量子门、作用量子比特、经典比特和参数。
-
-运行方式保持不变：
-
-```bash
-streamlit run app.py
-```
-
-
-## 7. 本版本界面修正
 
 针对最近一版界面反馈，本版本做了以下修正：
 

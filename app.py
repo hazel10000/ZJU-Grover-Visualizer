@@ -179,9 +179,12 @@ step_index = st.slider(
 selected_step = history[step_index]
 current_prob = target_probability(selected_step.statevector, target)
 
-st.write(f"当前展示：**{selected_step.title}**")
-st.info(step_explanation(selected_step.kind, target))
-st.metric("当前步骤的目标态概率", f"{current_prob * 100:.2f}%")
+metric_cols1 = st.columns(2)
+metric_cols1[0].metric(f"当前步骤类型", f"{selected_step.kind}")
+metric_cols1[1].metric("当前步骤的目标态概率", f"{current_prob * 100:.2f}%")
+# st.write(f"当前展示：**{selected_step.title}**")
+# st.info(step_explanation(selected_step.kind, target))
+# st.metric("当前步骤的目标态概率", f"{current_prob * 100:.2f}%")
 
 amp_fig = plotly_amplitudes(selected_step, n, target)
 prob_fig = plotly_probabilities(selected_step, n, target)
@@ -208,6 +211,8 @@ if show_state_table:
     with st.expander("查看当前 statevector 数值表", expanded=False):
         st.dataframe(make_state_rows(selected_step, n, target), hide_index=True, use_container_width=True)
 
+st.info(step_explanation(selected_step.kind, target))
+
 st.subheader("二、目标态概率随迭代次数变化")
 curve_fig = plotly_target_probability_curve(probability_points)
 st.plotly_chart(curve_fig, use_container_width=True)
@@ -227,7 +232,7 @@ if show_3d:
     st.caption("x轴为计算基态，y轴为演化步骤，z轴为对应测量概率。可以用鼠标旋转、缩放并悬停查看数值。")
     fig3d = plotly_3d_probability_history(history, n, target)
     with st.container(border=True):
-        st.caption("该区域为独立交互图框：可旋转、缩放、拖动，并可悬停查看具体概率。")
+        # st.caption("该区域为独立交互图框：可旋转、缩放、拖动，并可悬停查看具体概率。")
         st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True, "responsive": True})
     st.download_button(
         "下载 3D 交互图 HTML",
@@ -238,7 +243,7 @@ if show_3d:
 
 if show_circuit:
     st.subheader("四、Qiskit 量子电路")
-    st.caption("Qiskit 的标准电路图本质上仍是静态图；因此这里额外提供一个 Plotly 交互式操作视图和操作表，用于悬停查看每个门的细节。")
+    # st.caption("Qiskit 的标准电路图本质上仍是静态图；因此这里额外提供一个 Plotly 交互式操作视图和操作表，用于悬停查看每个门的细节。")
     qc = build_grover_circuit(n, target, max_iterations, measure=True, add_barriers=True)
 
     circuit_tabs = st.tabs(["交互式操作视图", "操作表", "Qiskit 标准电路图"])
@@ -279,7 +284,7 @@ if run_measurement:
         st.warning(f"测量统计暂不可用：{error}")
         st.write("这通常是因为没有安装 qiskit-aer。你仍然可以使用 statevector 中间态图完成主要展示。")
     else:
-        st.caption("横坐标现在按计算基态顺序显示为 |q0q1...>。Qiskit 原始 counts 是普通经典比特串；这里已转换成和前文一致的 ket 标记，并补全未出现的零计数基态。")
+        # st.caption("横坐标现在按计算基态顺序显示为 |q0q1...>。Qiskit 原始 counts 是普通经典比特串；这里已转换成和前文一致的 ket 标记，并补全未出现的零计数基态。")
         counts_fig = plotly_counts(counts, target, n=n)
         st.plotly_chart(counts_fig, use_container_width=True, config={"displayModeBar": True})
         target_counts = counts.get(target, 0)
