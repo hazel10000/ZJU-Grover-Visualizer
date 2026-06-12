@@ -1,4 +1,4 @@
-"""Visualization helpers for the Qiskit Grover visualizer."""
+﻿"""Visualization helpers for the Qiskit Grover visualizer."""
 
 from __future__ import annotations
 
@@ -168,7 +168,7 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             z=non_target_z,
             mode="lines",
             name="Non-target states",
-            line={"width": 7},
+            line={"width": 7, "color": "#4c78a8"},
             text=non_target_hover,
             hovertemplate="%{text}<extra></extra>",
         )
@@ -180,7 +180,7 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             z=target_z,
             mode="lines",
             name=f"Target {target_label}",
-            line={"width": 11},
+            line={"width": 11, "color": "#f58518"},
             text=target_hover,
             hovertemplate="%{text}<extra></extra>",
         )
@@ -192,7 +192,7 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             z=marker_z,
             mode="markers",
             name="Probability values",
-            marker={"size": 4},
+            marker={"size": 4, "color": "#4c78a8"},
             text=marker_hover,
             hovertemplate="%{text}<extra></extra>",
             showlegend=False,
@@ -205,7 +205,7 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             z=target_marker_z,
             mode="markers",
             name="Target probability values",
-            marker={"size": 6, "symbol": "diamond"},
+            marker={"size": 6, "symbol": "diamond", "color": "#f58518"},
             text=target_marker_hover,
             hovertemplate="%{text}<extra></extra>",
             showlegend=False,
@@ -217,13 +217,15 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             "text": f"Interactive 3D probability history, target={target_label}",
             "x": 0.02,
             "xanchor": "left",
-            "y": 0.985,
+            "y": 0.965,
             "yanchor": "top",
         },
-        margin={"l": 8, "r": 8, "t": 92, "b": 70},
-        height=680,
+        margin={"l": 8, "r": 8, "t": 48, "b": 28},
+        height=720,
+        autosize=True,
         scene={
-            "domain": {"x": [0.0, 1.0], "y": [0.06, 0.92]},
+            "domain": {"x": [0.0, 1.0], "y": [0.02, 0.96]},
+            "aspectmode": "cube",
             "xaxis": {
                 "title": "Basis state",
                 "tickmode": "array",
@@ -240,12 +242,12 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
             "camera": {"eye": {"x": 1.55, "y": 1.75, "z": 1.15}},
         },
         legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "right",
-            "x": 1.0,
-            "bgcolor": "rgba(255,255,255,0.72)",
+            "orientation": "v",
+            "yanchor": "top",
+            "y": 0.93,
+            "xanchor": "left",
+            "x": 0.02,
+            "bgcolor": "rgba(255,255,255,0.9)",
             "borderwidth": 1,
         },
     )
@@ -279,31 +281,30 @@ def plotly_amplitudes(step: GroverStep, n: int, target: str) -> "go.Figure":
     probs = np.abs(amps) ** 2
     target_label = f"|{target}>"
     categories = _highlight_target_marker(labels, target)
+    colors = ["#f58518" if category == "Target state" else "#4c78a8" for category in categories]
     hover = [
         f"Basis: {label}<br>Real amplitude: {amp:.6f}<br>Imag amplitude: {complex_amp.imag:.6f}<br>Probability: {prob:.6f}"
         for label, amp, complex_amp, prob in zip(labels, real_amps, amps, probs)
     ]
 
-    fig = go.Figure()
-    for category in ["Other state", "Target state"]:
-        xs = [label for label, cat in zip(labels, categories) if cat == category]
-        ys = [amp for amp, cat in zip(real_amps, categories) if cat == category]
-        texts = [h for h, cat in zip(hover, categories) if cat == category]
-        fig.add_trace(
-            go.Bar(
-                x=xs,
-                y=ys,
-                name=category,
-                text=[f"{y:.3f}" for y in ys],
-                textposition="outside",
-                hovertext=texts,
-                hovertemplate="%{hovertext}<extra></extra>",
-            )
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=real_amps,
+            name="Basis states",
+            text=[f"{y:.3f}" for y in real_amps],
+            textposition="outside",
+            hovertext=hover,
+            hovertemplate="%{hovertext}<extra></extra>",
+            marker={"color": colors},
         )
+    )
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Other state", marker={"size": 10, "color": "#4c78a8"}))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Target state", marker={"size": 10, "color": "#f58518"}))
     ymin = min(-1.05, float(np.min(real_amps)) - 0.1)
     ymax = max(1.05, float(np.max(real_amps)) + 0.1)
     fig.update_layout(
-        title=f"Real amplitudes — {step.title}, target={target_label}",
+        title=f"Real amplitudes - {step.title}, target={target_label}",
         xaxis_title="Basis state",
         yaxis_title="Real amplitude",
         yaxis_range=[ymin, ymax],
@@ -311,6 +312,7 @@ def plotly_amplitudes(step: GroverStep, n: int, target: str) -> "go.Figure":
         bargap=0.25,
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
     )
+    fig.update_xaxes(categoryorder="array", categoryarray=labels)
     fig.add_hline(y=0, line_width=1)
     return fig
 
@@ -322,29 +324,28 @@ def plotly_probabilities(step: GroverStep, n: int, target: str) -> "go.Figure":
     amps = statevector_in_top_order(step.statevector, n)
     target_label = f"|{target}>"
     categories = _highlight_target_marker(labels, target)
+    colors = ["#f58518" if category == "Target state" else "#4c78a8" for category in categories]
     hover = [
         f"Basis: {label}<br>Probability: {prob:.6f}<br>Real amplitude: {amp.real:.6f}<br>Imag amplitude: {amp.imag:.6f}"
         for label, prob, amp in zip(labels, probs, amps)
     ]
 
-    fig = go.Figure()
-    for category in ["Other state", "Target state"]:
-        xs = [label for label, cat in zip(labels, categories) if cat == category]
-        ys = [prob for prob, cat in zip(probs, categories) if cat == category]
-        texts = [h for h, cat in zip(hover, categories) if cat == category]
-        fig.add_trace(
-            go.Bar(
-                x=xs,
-                y=ys,
-                name=category,
-                text=[f"{100*y:.1f}%" for y in ys],
-                textposition="outside",
-                hovertext=texts,
-                hovertemplate="%{hovertext}<extra></extra>",
-            )
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=probs,
+            name="Basis states",
+            text=[f"{100*y:.1f}%" for y in probs],
+            textposition="outside",
+            hovertext=hover,
+            hovertemplate="%{hovertext}<extra></extra>",
+            marker={"color": colors},
         )
+    )
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Other state", marker={"size": 10, "color": "#4c78a8"}))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Target state", marker={"size": 10, "color": "#f58518"}))
     fig.update_layout(
-        title=f"Measurement probabilities — {step.title}, target={target_label}",
+        title=f"Measurement probabilities - {step.title}, target={target_label}",
         xaxis_title="Basis state",
         yaxis_title="Probability",
         yaxis_range=[0, 1.05],
@@ -352,6 +353,7 @@ def plotly_probabilities(step: GroverStep, n: int, target: str) -> "go.Figure":
         bargap=0.25,
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
     )
+    fig.update_xaxes(categoryorder="array", categoryarray=labels)
     return fig
 
 
@@ -471,12 +473,19 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
     rows = circuit_operation_rows(qc)
     n_qubits = len(qc.qubits)
     n_clbits = len(qc.clbits)
-    y_labels = [f"q{i}" for i in range(n_qubits)] + [f"c{i}" for i in range(n_clbits)]
+    classical_bus_label = f"c[0..{n_clbits - 1}]" if n_clbits else None
+    y_labels = [f"q{i}" for i in range(n_qubits)] + ([classical_bus_label] if classical_bus_label else [])
     y_values = list(range(len(y_labels)))
     y_map = {label: y for label, y in zip(y_labels, y_values)}
+    if classical_bus_label is not None:
+        for clbit in range(n_clbits):
+            y_map[f"c{clbit}"] = y_map[classical_bus_label]
 
     scheduled_rows = []
     last_column_by_wire = {label: -1 for label in y_labels}
+    if classical_bus_label is not None:
+        for clbit in range(n_clbits):
+            last_column_by_wire[f"c{clbit}"] = -1
     for row in rows:
         gate = str(row["gate"])
         qubits = [int(part.strip().replace("q", "")) for part in str(row["qubits"]).split(",") if part.strip()]
@@ -484,24 +493,80 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
         touched_wires = [f"q{q}" for q in qubits] + [f"c{c}" for c in clbits]
         if gate == "barrier":
             touched_wires = [f"q{q}" for q in range(n_qubits)]
-        column = max([last_column_by_wire.get(wire, -1) for wire in touched_wires] or [-1]) + 1
+        if gate == "measure":
+            column = max(last_column_by_wire.values(), default=-1) + 1
+        else:
+            column = max([last_column_by_wire.get(wire, -1) for wire in touched_wires] or [-1]) + 1
         for wire in touched_wires:
             if wire in last_column_by_wire:
                 last_column_by_wire[wire] = column
+        if gate == "measure" and classical_bus_label is not None:
+            last_column_by_wire[classical_bus_label] = column
         scheduled_rows.append({**row, "column": column, "qubit_indices": qubits, "clbit_indices": clbits})
 
     fig = go.Figure()
     wire_color = "#303642"
     gate_line = "#48506a"
-    gate_fill = "#f5f6ff"
+    gate_fill = "#ffffff"
     target_fill = "#ffffff"
     barrier_color = "#8b8f9d"
     annotation_font = {"size": 12, "color": "#202432"}
-    gate_half_width = 0.28
-    gate_half_height = 0.36
+    gate_half_height = 0.42
+
+    def add_gate_marker(x: float, y: float, label: str) -> None:
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                mode="markers+text",
+                marker={
+                    "size": 34,
+                    "symbol": "square",
+                    "color": gate_fill,
+                    "line": {"color": gate_line, "width": 1.5},
+                },
+                text=[label],
+                textposition="middle center",
+                textfont=annotation_font,
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    def add_control_marker(x: float, y: float) -> None:
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                mode="markers",
+                marker={"size": 9, "symbol": "circle", "color": wire_color},
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
+
+    def add_target_marker(x: float, y: float) -> None:
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                mode="markers+text",
+                marker={
+                    "size": 25,
+                    "symbol": "circle",
+                    "color": target_fill,
+                    "line": {"color": wire_color, "width": 1.8},
+                },
+                text=["+"],
+                textposition="middle center",
+                textfont={"size": 15, "color": wire_color},
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
 
     # Horizontal wires.
-    x_spacing = 1.0
+    x_spacing = 0.82
     max_x = (max([row["column"] for row in scheduled_rows], default=0) + 1) * x_spacing
     for label in y_labels:
         y = y_map[label]
@@ -510,11 +575,12 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
         for offset in offsets:
             fig.add_shape(
                 type="line",
-                x0=-0.45,
-                x1=max_x + 0.55,
+                x0=-0.35,
+                x1=max_x + 0.35,
                 y0=y + offset,
                 y1=y + offset,
                 line={"color": wire_color, "width": 1.4 if is_classical else 1.8},
+                layer="below",
             )
         fig.add_annotation(
             x=-0.68,
@@ -561,81 +627,48 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
                 x0=x,
                 x1=x,
                 y0=min(qys),
-                y1=max(qys),
+                y1=target_y - 0.22 if target_y == max(qys) else max(qys),
                 line={"color": wire_color, "width": 1.8},
             )
-            for y in controls:
+            if target_y != max(qys):
                 fig.add_shape(
-                    type="circle",
-                    x0=x - 0.07,
-                    x1=x + 0.07,
-                    y0=y - 0.07,
-                    y1=y + 0.07,
-                    fillcolor=wire_color,
-                    line={"color": wire_color, "width": 1},
+                    type="line",
+                    x0=x,
+                    x1=x,
+                    y0=target_y + 0.22,
+                    y1=max(qys),
+                    line={"color": wire_color, "width": 1.8},
                 )
-            fig.add_shape(
-                type="circle",
-                x0=x - 0.19,
-                x1=x + 0.19,
-                y0=target_y - 0.19,
-                y1=target_y + 0.19,
-                fillcolor=target_fill,
-                line={"color": wire_color, "width": 1.8},
-            )
-            fig.add_shape(type="line", x0=x - 0.13, x1=x + 0.13, y0=target_y, y1=target_y, line={"color": wire_color, "width": 1.5})
-            fig.add_shape(type="line", x0=x, x1=x, y0=target_y - 0.13, y1=target_y + 0.13, line={"color": wire_color, "width": 1.5})
+            for y in controls:
+                add_control_marker(x, y)
+            add_target_marker(x, target_y)
         elif gate == "measure" and qys:
             qy = qys[0]
             cy = cys[0] if cys else qy + 0.55
-            fig.add_shape(
-                type="rect",
-                x0=x - gate_half_width,
-                x1=x + gate_half_width,
-                y0=qy - gate_half_height,
-                y1=qy + gate_half_height,
-                fillcolor=gate_fill,
-                line={"color": gate_line, "width": 1.4},
-            )
-            fig.add_annotation(x=x, y=qy, text="M", showarrow=False, font=annotation_font)
+            add_gate_marker(x, qy, "M")
             fig.add_shape(
                 type="line",
                 x0=x,
                 x1=x,
-                y0=qy + gate_half_height,
+                y0=qy + 0.27,
                 y1=cy,
                 line={"color": wire_color, "width": 1.4},
             )
             fig.add_annotation(
                 x=x,
-                y=cy,
-                text="▾",
+                y=cy - 0.14,
+                text=f"c{clbits[0]}" if clbits else "c",
                 showarrow=False,
                 yanchor="middle",
-                font={"size": 14, "color": wire_color},
+                xshift=16,
+                font={"size": 11, "color": wire_color},
             )
         else:
-            fig.add_trace(
-                go.Scatter(
-                    x=[],
-                    y=[],
-                    showlegend=False,
-                )
-            )
             for y in qys or [0]:
                 label = gate.upper()
                 if gate == "id":
                     label = "I"
-                fig.add_shape(
-                    type="rect",
-                    x0=x - gate_half_width,
-                    x1=x + gate_half_width,
-                    y0=y - gate_half_height,
-                    y1=y + gate_half_height,
-                    fillcolor=gate_fill,
-                    line={"color": gate_line, "width": 1.4},
-                )
-                fig.add_annotation(x=x, y=y, text=label, showarrow=False, font=annotation_font)
+                add_gate_marker(x, y, label)
 
         # Transparent hover target over the rendered operation.
         hover_y = float(np.mean(ys)) if ys else 0
@@ -655,7 +688,7 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
     fig.update_layout(
         title="Interactive Qiskit-style circuit view",
         height=max(360, 90 + 60 * len(y_labels)),
-        margin={"l": 72, "r": 24, "t": 44, "b": 18},
+        margin={"l": 106, "r": 24, "t": 34, "b": 12},
         plot_bgcolor="white",
         paper_bgcolor="white",
     )
@@ -665,5 +698,5 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
         zeroline=False,
         range=[len(y_labels) - 0.5, -0.5],
     )
-    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, range=[-0.9, max_x + 0.8])
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False, range=[-1.05, max_x + 0.55])
     return fig

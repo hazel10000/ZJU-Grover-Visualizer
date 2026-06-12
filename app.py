@@ -53,26 +53,27 @@ def render_scrollable_plotly(fig, height: int, *, min_width: int = 1100) -> None
     html = fig.to_html(include_plotlyjs="cdn", full_html=False, default_width=f"{min_width}px", default_height=f"{height}px", config={"displayModeBar": True})
     components.html(
         f"""
-        <div style="border: 1px solid rgba(128,128,128,0.35); border-radius: 10px; padding: 12px; overflow-x: auto; background: rgba(250,250,250,0.03);">
-            <div style="min-width: {min_width}px;">{html}</div>
+        <div style="border: 1px solid rgba(128,128,128,0.35); border-radius: 10px; padding: 8px; overflow-x: scroll; overflow-y: hidden; background: rgba(250,250,250,0.03);">
+            <div style="width: {min_width}px; min-width: {min_width}px;">{html}</div>
         </div>
         """,
-        height=height + 42,
+        height=height + 38,
         scrolling=False,
     )
 
 
-def render_scrollable_png(png_bytes: bytes, *, height: int = 520, min_width: int = 1200) -> None:
+def render_scrollable_png(png_bytes: bytes, *, height: int = 520, min_width: int | None = None) -> None:
     """Render a PNG inside a bordered, horizontally scrollable frame."""
     import base64
 
     b64 = base64.b64encode(png_bytes).decode("ascii")
     frame_height = max(120, height - 2)
     image_height = max(80, height - 26)
+    width_style = f"min-width: {min_width}px;" if min_width is not None else "width: max-content;"
     components.html(
         f"""
         <div style="box-sizing: border-box; height: {frame_height}px; border: 1px solid rgba(128,128,128,0.35); border-radius: 10px; padding: 12px; overflow-x: auto; overflow-y: hidden; background: rgba(250,250,250,0.03);">
-            <div style="min-width: {min_width}px; height: {image_height}px;">
+            <div style="{width_style} height: {image_height}px;">
                 <img src="data:image/png;base64,{b64}" style="max-width: none; height: 100%; width: auto; display: block;" />
             </div>
         </div>
@@ -91,8 +92,9 @@ def step_explanation(kind: str, target: str) -> str:
         )
     if kind == "oracle":
         return (
-            f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1，"
-            "但概率是概率幅模平方，因此仅看概率图时通常不会立刻看到目标概率升高。"
+            # f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1，"
+            # "但概率是概率幅模平方，因此仅看概率图时通常不会立刻看到目标概率升高。"
+            f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1。"
         )
     if kind == "diffusion":
         return (
@@ -226,7 +228,7 @@ if show_3d:
     fig3d = plotly_3d_probability_history(history, n, target)
     with st.container(border=True):
         st.caption("该区域为独立交互图框：可旋转、缩放、拖动，并可悬停查看具体概率。")
-        st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True})
+        st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True, "responsive": True})
     st.download_button(
         "下载 3D 交互图 HTML",
         data=plotly_to_html_bytes(fig3d),
@@ -241,10 +243,10 @@ if show_circuit:
 
     circuit_tabs = st.tabs(["交互式操作视图", "操作表", "Qiskit 标准电路图"])
     with circuit_tabs[0]:
-        st.caption("这个视图使用宽画布绘制；如果电路较长，可以在图框内横向滚动，避免门元件挤在一起。")
+        # st.caption("这个视图使用宽画布绘制；如果电路较长，可以在图框内横向滚动，避免门元件挤在一起。")
         circuit_view = plotly_circuit_operation_view(qc)
-        circuit_width = max(1200, 85 * (len(qc.data) + 2))
-        render_scrollable_plotly(circuit_view, height=260, min_width=circuit_width)
+        circuit_width = max(760, 42 * (len(qc.data) + 2))
+        render_scrollable_plotly(circuit_view, height=264, min_width=circuit_width)
         st.download_button(
             "下载交互式电路操作视图 HTML",
             data=plotly_to_html_bytes(circuit_view),
@@ -257,7 +259,7 @@ if show_circuit:
         try:
             circuit_fig = draw_circuit_figure(n, target, max_iterations)
             circuit_png = figure_to_png_bytes(circuit_fig)
-            render_scrollable_png(circuit_png, height=280, min_width=max(1200, 90 * (len(qc.data) + 2)))
+            render_scrollable_png(circuit_png, height=280)
             st.download_button(
                 "下载 Qiskit 标准电路图 PNG",
                 data=circuit_png,
