@@ -475,6 +475,21 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
     y_values = list(range(len(y_labels)))
     y_map = {label: y for label, y in zip(y_labels, y_values)}
 
+    scheduled_rows = []
+    last_column_by_wire = {label: -1 for label in y_labels}
+    for row in rows:
+        gate = str(row["gate"])
+        qubits = [int(part.strip().replace("q", "")) for part in str(row["qubits"]).split(",") if part.strip()]
+        clbits = [int(part.strip().replace("c", "")) for part in str(row["clbits"]).split(",") if part.strip()]
+        touched_wires = [f"q{q}" for q in qubits] + [f"c{c}" for c in clbits]
+        if gate == "barrier":
+            touched_wires = [f"q{q}" for q in range(n_qubits)]
+        column = max([last_column_by_wire.get(wire, -1) for wire in touched_wires] or [-1]) + 1
+        for wire in touched_wires:
+            if wire in last_column_by_wire:
+                last_column_by_wire[wire] = column
+        scheduled_rows.append({**row, "column": column, "qubit_indices": qubits, "clbit_indices": clbits})
+
     fig = go.Figure()
     wire_color = "#303642"
     gate_line = "#48506a"
@@ -482,10 +497,12 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
     target_fill = "#ffffff"
     barrier_color = "#8b8f9d"
     annotation_font = {"size": 12, "color": "#202432"}
+    gate_half_width = 0.28
+    gate_half_height = 0.36
 
     # Horizontal wires.
     x_spacing = 1.0
-    max_x = (max([row["step"] for row in rows], default=0) + 1) * x_spacing
+    max_x = (max([row["column"] for row in scheduled_rows], default=0) + 1) * x_spacing
     for label in y_labels:
         y = y_map[label]
         is_classical = label.startswith("c")
@@ -511,11 +528,11 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
 
     # Gate markers and connectors. We use a scaled x coordinate so exported
     # HTML can be displayed on a wide, horizontally scrollable canvas.
-    for row in rows:
+    for row in scheduled_rows:
         gate = str(row["gate"])
-        x = int(row["step"]) * x_spacing
-        qubits = [int(part.strip().replace("q", "")) for part in str(row["qubits"]).split(",") if part.strip()]
-        clbits = [int(part.strip().replace("c", "")) for part in str(row["clbits"]).split(",") if part.strip()]
+        x = int(row["column"]) * x_spacing
+        qubits = row["qubit_indices"]
+        clbits = row["clbit_indices"]
         qys = [y_map[f"q{q}"] for q in qubits if f"q{q}" in y_map]
         cys = [y_map[f"c{c}"] for c in clbits if f"c{c}" in y_map]
         ys = qys + cys
@@ -525,8 +542,8 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
                     type="line",
                     x0=x,
                     x1=x,
-                    y0=min(qys) - 0.38,
-                    y1=max(qys) + 0.38,
+                    y0=min(qys) - gate_half_height,
+                    y1=max(qys) + gate_half_height,
                     line={"color": barrier_color, "width": 1.5, "dash": "dash"},
                 )
             continue
@@ -559,10 +576,10 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
                 )
             fig.add_shape(
                 type="circle",
-                x0=x - 0.18,
-                x1=x + 0.18,
-                y0=target_y - 0.18,
-                y1=target_y + 0.18,
+                x0=x - 0.19,
+                x1=x + 0.19,
+                y0=target_y - 0.19,
+                y1=target_y + 0.19,
                 fillcolor=target_fill,
                 line={"color": wire_color, "width": 1.8},
             )
@@ -573,29 +590,29 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
             cy = cys[0] if cys else qy + 0.55
             fig.add_shape(
                 type="rect",
-                x0=x - 0.28,
-                x1=x + 0.28,
-                y0=qy - 0.24,
-                y1=qy + 0.24,
+                x0=x - gate_half_width,
+                x1=x + gate_half_width,
+                y0=qy - gate_half_height,
+                y1=qy + gate_half_height,
                 fillcolor=gate_fill,
                 line={"color": gate_line, "width": 1.4},
             )
             fig.add_annotation(x=x, y=qy, text="M", showarrow=False, font=annotation_font)
+            fig.add_shape(
+                type="line",
+                x0=x,
+                x1=x,
+                y0=qy + gate_half_height,
+                y1=cy,
+                line={"color": wire_color, "width": 1.4},
+            )
             fig.add_annotation(
-                x=x + 0.15,
+                x=x,
                 y=cy,
-                ax=x - 0.05,
-                ay=qy + 0.22,
-                xref="x",
-                yref="y",
-                axref="x",
-                ayref="y",
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=0.8,
-                arrowwidth=1.3,
-                arrowcolor=wire_color,
-                text="",
+                text="▾",
+                showarrow=False,
+                yanchor="middle",
+                font={"size": 14, "color": wire_color},
             )
         else:
             fig.add_trace(
@@ -611,10 +628,10 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
                     label = "I"
                 fig.add_shape(
                     type="rect",
-                    x0=x - 0.28,
-                    x1=x + 0.28,
-                    y0=y - 0.24,
-                    y1=y + 0.24,
+                    x0=x - gate_half_width,
+                    x1=x + gate_half_width,
+                    y0=y - gate_half_height,
+                    y1=y + gate_half_height,
                     fillcolor=gate_fill,
                     line={"color": gate_line, "width": 1.4},
                 )
@@ -622,13 +639,13 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
 
         # Transparent hover target over the rendered operation.
         hover_y = float(np.mean(ys)) if ys else 0
-        hover_height = max(0.75, (max(ys) - min(ys) + 0.7) if ys else 0.75)
+        hover_height = max(0.9, (max(ys) - min(ys) + 0.8) if ys else 0.9)
         fig.add_trace(
             go.Scatter(
                 x=[x],
                 y=[hover_y],
                 mode="markers",
-                marker={"size": max(28, hover_height * 28), "color": "rgba(0,0,0,0)"},
+                marker={"size": max(34, hover_height * 30), "color": "rgba(0,0,0,0)"},
                 hovertemplate=hover + "<extra></extra>",
                 showlegend=False,
             )
