@@ -1,0 +1,7 @@
+numpy>=1.24
+matplotlib>=3.8
+qiskit>=1.0
+qiskit-aer>=0.14
+pylatexenc>=2.10
+streamlit>=1.30
+plotly>=5.20
