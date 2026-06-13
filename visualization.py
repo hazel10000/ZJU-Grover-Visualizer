@@ -8,6 +8,7 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from qiskit_grover_core import (
     GroverStep,
@@ -354,6 +355,160 @@ def plotly_probabilities(step: GroverStep, n: int, target: str) -> "go.Figure":
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
     )
     fig.update_xaxes(categoryorder="array", categoryarray=labels)
+    return fig
+
+
+def plotly_step_animation(
+    history: Sequence[GroverStep],
+    n: int,
+    target: str,
+    frame_duration_ms: int = 700,
+) -> "go.Figure":
+    """Animated side-by-side amplitude/probability view driven by Plotly frames."""
+    labels = basis_labels(n)
+    target_label = f"|{target}>"
+    colors = ["#f58518" if label == target_label else "#4c78a8" for label in labels]
+
+    def frame_values(step: GroverStep):
+        amps = statevector_in_top_order(step.statevector, n)
+        real_amps = np.real_if_close(amps, tol=1000).real.astype(float)
+        probs = probabilities_in_top_order(step.statevector, n).astype(float)
+        amp_hover = [
+            f"Step: S{step.index} ({step.kind})<br>Basis: {label}<br>Real amplitude: {amp:.6f}<br>Probability: {prob:.6f}"
+            for label, amp, prob in zip(labels, real_amps, probs)
+        ]
+        prob_hover = [
+            f"Step: S{step.index} ({step.kind})<br>Basis: {label}<br>Probability: {prob:.6f}<br>Real amplitude: {amp:.6f}"
+            for label, prob, amp in zip(labels, probs, real_amps)
+        ]
+        return real_amps, probs, amp_hover, prob_hover
+
+    first_amps, first_probs, first_amp_hover, first_prob_hover = frame_values(history[0])
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=("实数概率幅", "测量概率"),
+        horizontal_spacing=0.12,
+    )
+    fig.add_trace(
+        go.Bar(
+            x=labels,
+            y=first_amps,
+            marker={"color": colors},
+            text=[f"{value:.3f}" for value in first_amps],
+            textposition="outside",
+            hovertext=first_amp_hover,
+            hovertemplate="%{hovertext}<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Bar(
+            x=labels,
+            y=first_probs,
+            marker={"color": colors},
+            text=[f"{100 * value:.1f}%" for value in first_probs],
+            textposition="outside",
+            hovertext=first_prob_hover,
+            hovertemplate="%{hovertext}<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    frames = []
+    for step in history:
+        amps, probs, amp_hover, prob_hover = frame_values(step)
+        frames.append(
+            go.Frame(
+                name=str(step.index),
+                data=[
+                    go.Bar(
+                        y=amps,
+                        text=[f"{value:.3f}" for value in amps],
+                        hovertext=amp_hover,
+                        marker={"color": colors},
+                    ),
+                    go.Bar(
+                        y=probs,
+                        text=[f"{100 * value:.1f}%" for value in probs],
+                        hovertext=prob_hover,
+                        marker={"color": colors},
+                    ),
+                ],
+                layout=go.Layout(
+                    title_text=f"Grover 步进动画 - S{step.index}: {step.kind}, iteration {step.iteration}, target={target_label}"
+                ),
+            )
+        )
+    fig.frames = frames
+
+    slider_steps = [
+        {
+            "args": [
+                [str(step.index)],
+                {
+                    "frame": {"duration": frame_duration_ms, "redraw": True},
+                    "mode": "immediate",
+                    "transition": {"duration": 180},
+                },
+            ],
+            "label": f"S{step.index}",
+            "method": "animate",
+        }
+        for step in history
+    ]
+    play_args = {
+        "frame": {"duration": frame_duration_ms, "redraw": True},
+        "fromcurrent": True,
+        "mode": "immediate",
+        "transition": {"duration": 180},
+    }
+    pause_args = {
+        "frame": {"duration": 0, "redraw": False},
+        "mode": "immediate",
+        "transition": {"duration": 0},
+    }
+
+    fig.update_layout(
+        title=f"Grover 步进动画 - S0: initial, iteration 0, target={target_label}",
+        height=540,
+        margin={"l": 24, "r": 24, "t": 76, "b": 118},
+        bargap=0.25,
+        updatemenus=[
+            {
+                "type": "buttons",
+                "direction": "left",
+                "x": 0.01,
+                "y": -0.16,
+                "xanchor": "left",
+                "yanchor": "top",
+                "pad": {"r": 10, "t": 0, "b": 0},
+                "showactive": False,
+                "buttons": [
+                    {"label": "播放", "method": "animate", "args": [None, play_args]},
+                    {"label": "暂停", "method": "animate", "args": [[None], pause_args]},
+                ],
+            }
+        ],
+        sliders=[
+            {
+                "active": 0,
+                "currentvalue": {"prefix": "步骤："},
+                "x": 0.20,
+                "len": 0.74,
+                "y": -0.10,
+                "pad": {"t": 0, "b": 12},
+                "steps": slider_steps,
+            }
+        ],
+    )
+    fig.update_xaxes(categoryorder="array", categoryarray=labels)
+    fig.update_yaxes(title_text="实数概率幅", range=[-1.05, 1.05], row=1, col=1)
+    fig.update_yaxes(title_text="测量概率", range=[0, 1.05], row=1, col=2)
     return fig
 
 

@@ -7,7 +7,6 @@ Run with:
 from __future__ import annotations
 
 import io
-import time
 from typing import Dict, List
 
 import numpy as np
@@ -33,10 +32,9 @@ from visualization import (
     plotly_counts,
     plotly_noise_degradation_scan,
     plotly_probabilities,
+    plotly_step_animation,
     plotly_target_probability_curve,
 )
-
-PLAYBACK_STATE_VERSION = 1
 
 
 def figure_to_png_bytes(fig) -> bytes:
@@ -153,6 +151,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("**显示选项**")
+    animation_duration_ms = st.slider("步进动画间隔（毫秒）", 250, 1800, 700, 50)
     show_state_table = st.checkbox("显示 statevector 表格", value=True)
     show_3d = st.checkbox("显示 Plotly 交互式 3D 步进概率图", value=True)
     show_circuit = st.checkbox("显示 Qiskit 电路", value=True)
@@ -178,82 +177,74 @@ metric_cols[3].metric("经验最佳迭代", f"r ≈ {expected_best}")
 st.subheader("一、当前展示")
 if "step_index" not in st.session_state or st.session_state.step_index >= len(history):
     st.session_state.step_index = current_prob_default_step
-if st.session_state.get("playback_state_version") != PLAYBACK_STATE_VERSION:
-    st.session_state.is_playing_steps = False
-    st.session_state.playback_state_version = PLAYBACK_STATE_VERSION
-elif "is_playing_steps" not in st.session_state:
-    st.session_state.is_playing_steps = False
 if "step_slider_nonce" not in st.session_state:
     st.session_state.step_slider_nonce = 0
 
-control_cols = st.columns([1, 1, 1, 1, 2])
-with control_cols[0]:
-    if st.button("上一帧", use_container_width=True):
-        st.session_state.step_index = max(0, st.session_state.step_index - 1)
-        st.session_state.is_playing_steps = False
-        st.session_state.step_slider_nonce += 1
-with control_cols[1]:
-    play_button_label = "暂停" if st.session_state.is_playing_steps else "播放"
-    if st.button(play_button_label, use_container_width=True):
-        st.session_state.is_playing_steps = not st.session_state.is_playing_steps
-with control_cols[2]:
-    if st.button("下一帧", use_container_width=True):
-        st.session_state.step_index = min(len(history) - 1, st.session_state.step_index + 1)
-        st.session_state.is_playing_steps = False
-        st.session_state.step_slider_nonce += 1
-with control_cols[3]:
-    if st.button("重置", use_container_width=True):
-        st.session_state.step_index = 0
-        st.session_state.is_playing_steps = False
-        st.session_state.step_slider_nonce += 1
-with control_cols[4]:
-    playback_delay = st.slider("播放间隔（秒）", 0.2, 2.0, 0.8, 0.1)
-st.caption(f"播放状态：{'播放中' if st.session_state.is_playing_steps else '已暂停'}")
-
-step_index = st.slider(
-    "选择演化步骤",
-    min_value=0,
-    max_value=len(history) - 1,
-    value=int(st.session_state.step_index),
-    format="S%d",
-    help="拖动滑块观察每一步后的概率幅和概率变化。",
-    key=f"step_slider_{st.session_state.step_slider_nonce}",
+animation_fig = plotly_step_animation(history, n, target, frame_duration_ms=animation_duration_ms)
+st.plotly_chart(
+    animation_fig,
+    use_container_width=True,
+    config={"displayModeBar": True, "responsive": True},
+    key=f"step_animation_{n}_{target}_{max_iterations}_{animation_duration_ms}",
 )
-if step_index != st.session_state.step_index:
-    st.session_state.step_index = step_index
-    st.session_state.is_playing_steps = False
-selected_step = history[step_index]
-current_prob = target_probability(selected_step.statevector, target)
 
-metric_cols1 = st.columns(2)
-metric_cols1[0].metric("当前步骤类型", f"{selected_step.kind}")
-metric_cols1[1].metric("当前目标态概率", f"{current_prob * 100:.2f}%")
-amp_fig = plotly_amplitudes(selected_step, n, target)
-prob_fig = plotly_probabilities(selected_step, n, target)
+# with st.expander("补充检查：手动选帧、下载与 statevector", expanded=False):
+with st.expander("补充检查：手动选帧与 statevector", expanded=False):
+    control_cols = st.columns([1, 1, 1])
+    with control_cols[0]:
+        if st.button("上一帧", use_container_width=True):
+            st.session_state.step_index = max(0, st.session_state.step_index - 1)
+            st.session_state.step_slider_nonce += 1
+    with control_cols[1]:
+        if st.button("下一帧", use_container_width=True):
+            st.session_state.step_index = min(len(history) - 1, st.session_state.step_index + 1)
+            st.session_state.step_slider_nonce += 1
+    with control_cols[2]:
+        if st.button("重置", use_container_width=True):
+            st.session_state.step_index = 0
+            st.session_state.step_slider_nonce += 1
 
-left, right = st.columns(2)
-with left:
-    st.plotly_chart(amp_fig, use_container_width=True, key=f"amp_fig_{selected_step.index}_{n}_{target}")
-    st.download_button(
-        "下载当前概率幅交互图 HTML",
-        data=plotly_to_html_bytes(amp_fig),
-        file_name=f"step_{selected_step.index:02d}_amplitude.html",
-        mime="text/html",
+    step_index = st.slider(
+        "选择用于详细检查的演化步骤",
+        min_value=0,
+        max_value=len(history) - 1,
+        value=int(st.session_state.step_index),
+        format="S%d",
+        help="该滑块只控制下方单步检查区；主动画请使用动画图内部的播放按钮和进度条。",
+        key=f"step_slider_{st.session_state.step_slider_nonce}",
     )
-with right:
-    st.plotly_chart(prob_fig, use_container_width=True, key=f"prob_fig_{selected_step.index}_{n}_{target}")
-    st.download_button(
-        "下载当前概率交互图 HTML",
-        data=plotly_to_html_bytes(prob_fig),
-        file_name=f"step_{selected_step.index:02d}_probability.html",
-        mime="text/html",
-    )
+    if step_index != st.session_state.step_index:
+        st.session_state.step_index = step_index
 
-if show_state_table:
-    with st.expander("查看当前 statevector 数值表", expanded=False):
+    selected_step = history[step_index]
+    current_prob = target_probability(selected_step.statevector, target)
+    metric_cols1 = st.columns(2)
+    metric_cols1[0].metric("检查步骤类型", f"{selected_step.kind}")
+    metric_cols1[1].metric("检查目标态概率", f"{current_prob * 100:.2f}%")
+    st.info(step_explanation(selected_step.kind, target))
+
+    amp_fig = plotly_amplitudes(selected_step, n, target)
+    prob_fig = plotly_probabilities(selected_step, n, target)
+    left, right = st.columns(2)
+    with left:
+        st.plotly_chart(amp_fig, use_container_width=True, key=f"amp_fig_{selected_step.index}_{n}_{target}")
+        # st.download_button(
+        #     "下载当前概率幅交互图 HTML",
+        #     data=plotly_to_html_bytes(amp_fig),
+        #     file_name=f"step_{selected_step.index:02d}_amplitude.html",
+        #     mime="text/html",
+        # )
+    with right:
+        st.plotly_chart(prob_fig, use_container_width=True, key=f"prob_fig_{selected_step.index}_{n}_{target}")
+        # st.download_button(
+        #     "下载当前概率交互图 HTML",
+        #     data=plotly_to_html_bytes(prob_fig),
+        #     file_name=f"step_{selected_step.index:02d}_probability.html",
+        #     mime="text/html",
+        # )
+
+    if show_state_table:
         st.dataframe(make_state_rows(selected_step, n, target), hide_index=True, use_container_width=True)
-
-st.info(step_explanation(selected_step.kind, target))
 
 st.subheader("二、目标态概率随迭代次数变化")
 curve_fig = plotly_target_probability_curve(probability_points)
@@ -262,12 +253,12 @@ st.write(
     f"在当前参数下，完整 Grover 迭代后的最高目标态概率出现在 **第 {best_iteration} 次迭代**，"
     f"目标态概率约为 **{best_prob * 100:.2f}%**。"
 )
-st.download_button(
-    "下载目标态概率曲线 HTML",
-    data=plotly_to_html_bytes(curve_fig),
-    file_name="target_probability_curve.html",
-    mime="text/html",
-)
+# st.download_button(
+#     "下载目标态概率曲线 HTML",
+#     data=plotly_to_html_bytes(curve_fig),
+#     file_name="target_probability_curve.html",
+#     mime="text/html",
+# )
 
 with st.expander("错误迭代次数演示：迭代过多会回落", expanded=True):
     over_iteration_rows = []
@@ -350,12 +341,12 @@ if show_3d:
     fig3d = plotly_3d_probability_history(history, n, target)
     with st.container(border=True):
         st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True, "responsive": True}, key=f"probability_history_3d_{n}_{target}_{max_iterations}")
-    st.download_button(
-        "下载 3D 交互图 HTML",
-        data=plotly_to_html_bytes(fig3d),
-        file_name="probability_history_3d.html",
-        mime="text/html",
-    )
+    # st.download_button(
+    #     "下载 3D 交互图 HTML",
+    #     data=plotly_to_html_bytes(fig3d),
+    #     file_name="probability_history_3d.html",
+    #     mime="text/html",
+    # )
 
 if show_circuit:
     st.subheader("四、Qiskit 量子电路")
@@ -366,12 +357,12 @@ if show_circuit:
         circuit_view = plotly_circuit_operation_view(qc)
         circuit_width = max(760, 42 * (len(qc.data) + 2))
         render_scrollable_plotly(circuit_view, height=264, min_width=circuit_width)
-        st.download_button(
-            "下载交互式电路操作视图 HTML",
-            data=plotly_to_html_bytes(circuit_view),
-            file_name=f"grover_n{n}_target{target}_r{max_iterations}_circuit_view.html",
-            mime="text/html",
-        )
+        # st.download_button(
+        #     "下载交互式电路操作视图 HTML",
+        #     data=plotly_to_html_bytes(circuit_view),
+        #     file_name=f"grover_n{n}_target{target}_r{max_iterations}_circuit_view.html",
+        #     mime="text/html",
+        # )
     with circuit_tabs[1]:
         st.dataframe(circuit_operation_rows(qc), hide_index=True, use_container_width=True)
     with circuit_tabs[2]:
@@ -379,12 +370,12 @@ if show_circuit:
             circuit_fig = draw_circuit_figure(n, target, max_iterations)
             circuit_png = figure_to_png_bytes(circuit_fig)
             render_scrollable_png(circuit_png, height=280)
-            st.download_button(
-                "下载 Qiskit 标准电路图 PNG",
-                data=circuit_png,
-                file_name=f"grover_n{n}_target{target}_r{max_iterations}_circuit.png",
-                mime="image/png",
-            )
+            # st.download_button(
+            #     "下载 Qiskit 标准电路图 PNG",
+            #     data=circuit_png,
+            #     file_name=f"grover_n{n}_target{target}_r{max_iterations}_circuit.png",
+            #     mime="image/png",
+            # )
         except Exception as exc:
             st.warning("Matplotlib 电路图绘制失败，下面显示文本电路。通常安装 pylatexenc 后即可绘制 PNG 电路图。")
             st.code(str(qc.draw(output="text", fold=-1)), language="text")
@@ -455,12 +446,12 @@ if run_measurement:
         )
         target_counts = counts.get(target, 0)
         st.write(f"目标态 `{target}` 出现次数：**{target_counts} / {shots}**，频率约为 **{target_counts / shots * 100:.2f}%**。")
-        st.download_button(
-            "下载测量统计交互图 HTML",
-            data=plotly_to_html_bytes(counts_fig),
-            file_name="measurement_counts.html",
-            mime="text/html",
-        )
+        # st.download_button(
+        #     "下载测量统计交互图 HTML",
+        #     data=plotly_to_html_bytes(counts_fig),
+        #     file_name="measurement_counts.html",
+        #     mime="text/html",
+        # )
         with st.expander("查看原始 counts 字典", expanded=False):
             st.json(counts)
 else:
@@ -479,9 +470,3 @@ $$
 这样目标态在相位翻转后会被反演到更大的正振幅位置，从而实现振幅放大。
         """
     )
-
-if st.session_state.get("is_playing_steps", False):
-    time.sleep(playback_delay)
-    st.session_state.step_index = (st.session_state.step_index + 1) % len(history)
-    st.session_state.step_slider_nonce += 1
-    st.rerun()
