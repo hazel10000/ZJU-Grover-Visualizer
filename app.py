@@ -228,6 +228,46 @@ st.download_button(
     mime="text/html",
 )
 
+with st.expander("理论公式对照：Grover 振幅放大", expanded=True):
+    search_space_size = 2**n
+    theta = float(np.arcsin(1 / np.sqrt(search_space_size)))
+    theory_rows = []
+    simulated_by_iter = {int(iteration): float(prob) for iteration, prob in probability_points}
+    for iteration in range(max_iterations + 1):
+        theoretical_prob = float(np.sin((2 * iteration + 1) * theta) ** 2)
+        simulated_prob = simulated_by_iter.get(iteration)
+        theory_rows.append(
+            {
+                "iteration r": iteration,
+                "theory P_r": round(theoretical_prob, 6),
+                "statevector P_r": round(simulated_prob, 6) if simulated_prob is not None else None,
+                "absolute error": round(abs(theoretical_prob - simulated_prob), 6) if simulated_prob is not None else None,
+            }
+        )
+
+    st.markdown(
+        rf"""
+对于单个目标态的 Grover 搜索，令搜索空间大小为 \(N=2^n={search_space_size}\)，并定义
+
+$$
+\sin(\theta)=\frac{{1}}{{\sqrt{{N}}}}
+$$
+
+完成 \(r\) 次 Grover 迭代后，目标态的理论概率为
+
+$$
+P_r=\sin^2((2r+1)\theta)
+$$
+
+当前参数下 \(\theta \approx {theta:.6f}\)，经验最优迭代次数约为
+
+$$
+r_\text{{opt}}\approx \left\lfloor \frac{{\pi}}{{4}}\sqrt{{N}} \right\rfloor = {expected_best}.
+$$
+"""
+    )
+    st.dataframe(theory_rows, hide_index=True, use_container_width=True)
+
 if show_3d:
     st.subheader("三、Plotly 交互式 3D 步进概率历史图")
     st.caption("x 轴为计算基态，y 轴为演化步骤，z 轴为对应测量概率。可以旋转、缩放并悬停查看数值。")
