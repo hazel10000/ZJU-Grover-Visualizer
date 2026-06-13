@@ -7,6 +7,7 @@ Run with:
 from __future__ import annotations
 
 import io
+import time
 from typing import Dict, List
 
 import numpy as np
@@ -34,6 +35,8 @@ from visualization import (
     plotly_probabilities,
     plotly_target_probability_curve,
 )
+
+PLAYBACK_STATE_VERSION = 1
 
 
 def figure_to_png_bytes(fig) -> bytes:
@@ -173,14 +176,52 @@ metric_cols[2].metric("最高目标态概率", f"{best_prob * 100:.2f}%", f"iter
 metric_cols[3].metric("经验最佳迭代", f"r ≈ {expected_best}")
 
 st.subheader("一、当前展示")
+if "step_index" not in st.session_state or st.session_state.step_index >= len(history):
+    st.session_state.step_index = current_prob_default_step
+if st.session_state.get("playback_state_version") != PLAYBACK_STATE_VERSION:
+    st.session_state.is_playing_steps = False
+    st.session_state.playback_state_version = PLAYBACK_STATE_VERSION
+elif "is_playing_steps" not in st.session_state:
+    st.session_state.is_playing_steps = False
+if "step_slider_nonce" not in st.session_state:
+    st.session_state.step_slider_nonce = 0
+
+control_cols = st.columns([1, 1, 1, 1, 2])
+with control_cols[0]:
+    if st.button("上一帧", use_container_width=True):
+        st.session_state.step_index = max(0, st.session_state.step_index - 1)
+        st.session_state.is_playing_steps = False
+        st.session_state.step_slider_nonce += 1
+with control_cols[1]:
+    play_button_label = "暂停" if st.session_state.is_playing_steps else "播放"
+    if st.button(play_button_label, use_container_width=True):
+        st.session_state.is_playing_steps = not st.session_state.is_playing_steps
+with control_cols[2]:
+    if st.button("下一帧", use_container_width=True):
+        st.session_state.step_index = min(len(history) - 1, st.session_state.step_index + 1)
+        st.session_state.is_playing_steps = False
+        st.session_state.step_slider_nonce += 1
+with control_cols[3]:
+    if st.button("重置", use_container_width=True):
+        st.session_state.step_index = 0
+        st.session_state.is_playing_steps = False
+        st.session_state.step_slider_nonce += 1
+with control_cols[4]:
+    playback_delay = st.slider("播放间隔（秒）", 0.2, 2.0, 0.8, 0.1)
+st.caption(f"播放状态：{'播放中' if st.session_state.is_playing_steps else '已暂停'}")
+
 step_index = st.slider(
     "选择演化步骤",
     min_value=0,
     max_value=len(history) - 1,
-    value=current_prob_default_step,
+    value=int(st.session_state.step_index),
     format="S%d",
     help="拖动滑块观察每一步后的概率幅和概率变化。",
+    key=f"step_slider_{st.session_state.step_slider_nonce}",
 )
+if step_index != st.session_state.step_index:
+    st.session_state.step_index = step_index
+    st.session_state.is_playing_steps = False
 selected_step = history[step_index]
 current_prob = target_probability(selected_step.statevector, target)
 
@@ -227,6 +268,41 @@ st.download_button(
     file_name="target_probability_curve.html",
     mime="text/html",
 )
+
+with st.expander("错误迭代次数演示：迭代过多会回落", expanded=True):
+    over_iteration_rows = []
+    previous_prob = None
+    for iteration, probability in probability_points:
+        if previous_prob is None:
+            trend = "initial"
+            delta = None
+        else:
+            delta = probability - previous_prob
+            trend = "increase" if delta > 1e-9 else "decrease" if delta < -1e-9 else "flat"
+        over_iteration_rows.append(
+            {
+                "iteration r": int(iteration),
+                "target probability": round(float(probability), 6),
+                "change from previous": round(float(delta), 6) if delta is not None else None,
+                "trend": trend,
+                "is best": int(iteration) == int(best_iteration),
+            }
+        )
+        previous_prob = probability
+
+    final_iteration, final_probability = probability_points[-1]
+    if best_iteration < final_iteration:
+        st.warning(
+            f"当前扫描已经出现过迭代现象：最佳迭代是 r={best_iteration}，"
+            f"目标概率约 {best_prob * 100:.2f}%；继续到 r={final_iteration} 后，"
+            f"目标概率变为 {final_probability * 100:.2f}%。"
+        )
+    else:
+        st.info(
+            "当前最大迭代次数还没有明显展示过迭代回落。"
+            "可以把左侧“最大 Grover 迭代次数”调大，观察目标概率超过最佳点后下降。"
+        )
+    st.dataframe(over_iteration_rows, hide_index=True, use_container_width=True)
 
 with st.expander("理论公式对照：Grover 振幅放大", expanded=True):
     search_space_size = 2**n
@@ -403,3 +479,9 @@ $$
 这样目标态在相位翻转后会被反演到更大的正振幅位置，从而实现振幅放大。
         """
     )
+
+if st.session_state.get("is_playing_steps", False):
+    time.sleep(playback_delay)
+    st.session_state.step_index = (st.session_state.step_index + 1) % len(history)
+    st.session_state.step_slider_nonce += 1
+    st.rerun()
