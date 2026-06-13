@@ -295,6 +295,94 @@ def simulate_measurements(
         return None, f"Aer simulation failed: {exc}"
 
 
+def analyze_distribution_comparison(
+    n: int,
+    target: str,
+    max_iterations: int,
+    shots: int = 2048,
+    one_qubit_error: float = 0.001,
+    two_qubit_error: float = 0.01,
+    readout_error: float = 0.02,
+) -> Tuple[Optional[List[Dict[str, object]]], Optional[List[Dict[str, object]]], Optional[str]]:
+    """Return ideal/noisy full basis distributions for each completed iteration.
+
+    Rows are basis-level values used by the 3D comparison plot. Summary rows
+    keep iteration-level target frequency and transpiled depth metrics.
+    """
+    require_qiskit()
+
+    try:
+        from qiskit_aer import AerSimulator
+        from qiskit_aer.noise import NoiseModel, ReadoutError, depolarizing_error
+    except Exception as exc:  # pragma: no cover
+        return None, None, f"qiskit-aer noise tools are not available: {exc}"
+
+    try:
+        noise_model = NoiseModel()
+        if one_qubit_error > 0:
+            one_error = depolarizing_error(one_qubit_error, 1)
+            noise_model.add_all_qubit_quantum_error(one_error, ["x", "sx", "h"])
+        if two_qubit_error > 0:
+            two_error = depolarizing_error(two_qubit_error, 2)
+            noise_model.add_all_qubit_quantum_error(two_error, ["cx"])
+        if readout_error > 0:
+            read_error = ReadoutError([[1 - readout_error, readout_error], [readout_error, 1 - readout_error]])
+            noise_model.add_all_qubit_readout_error(read_error)
+
+        simulator = AerSimulator(noise_model=noise_model)
+        labels = basis_labels(n)
+        distribution_rows: List[Dict[str, object]] = []
+        summary_rows: List[Dict[str, object]] = []
+        for iterations in range(max_iterations + 1):
+            history = build_grover_history(n, target, iterations)
+            ideal_probs = probabilities_in_top_order(history[-1].statevector, n).astype(float)
+
+            measured = build_grover_circuit(n, target, iterations, measure=True, add_barriers=False)
+            compiled = transpile(measured, simulator, optimization_level=1)
+            result = simulator.run(compiled, shots=shots).result()
+            counts = dict(result.get_counts())
+            ops = compiled.count_ops()
+
+            target_ideal = 0.0
+            target_noisy = 0.0
+            for label, ideal_prob in zip(labels, ideal_probs):
+                raw_key = label.strip("|>")
+                noisy_frequency = int(counts.get(raw_key, 0)) / shots
+                loss = float(ideal_prob) - noisy_frequency
+                is_target = raw_key == target
+                if is_target:
+                    target_ideal = float(ideal_prob)
+                    target_noisy = noisy_frequency
+                distribution_rows.append(
+                    {
+                        "iterations": iterations,
+                        "basis": label,
+                        "raw_key": raw_key,
+                        "ideal_probability": float(ideal_prob),
+                        "noisy_frequency": noisy_frequency,
+                        "loss": loss,
+                        "is_target": is_target,
+                    }
+                )
+
+            summary_rows.append(
+                {
+                    "iterations": iterations,
+                    "ideal_target_probability": target_ideal,
+                    "noisy_target_frequency": target_noisy,
+                    "target_loss": target_ideal - target_noisy,
+                    "target_counts": int(counts.get(target, 0)),
+                    "shots": shots,
+                    "depth": int(compiled.depth()),
+                    "operations": int(sum(ops.values())),
+                    "cx_count": int(ops.get("cx", 0)),
+                }
+            )
+        return distribution_rows, summary_rows, None
+    except Exception as exc:  # pragma: no cover
+        return None, None, f"Distribution comparison failed: {exc}"
+
+
 def analyze_noisy_iteration_scan(
     n: int,
     target: str,

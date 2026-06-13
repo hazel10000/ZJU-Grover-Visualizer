@@ -592,6 +592,158 @@ def plotly_noise_degradation_scan(rows: Sequence[Dict[str, object]]) -> "go.Figu
     return fig
 
 
+def plotly_distribution_comparison_3d(
+    rows: Sequence[Dict[str, object]],
+    n: int,
+    target: str,
+    mode: str = "ideal_probability",
+) -> "go.Figure":
+    """Create a 3D basis-distribution plot for ideal, noisy, or loss values."""
+    labels = basis_labels(n)
+    label_to_x = {label: idx for idx, label in enumerate(labels)}
+    target_label = f"|{target}>"
+    iterations = sorted({int(row["iterations"]) for row in rows})
+    mode_config = {
+        "ideal_probability": ("理想概率分布", "Ideal probability", "#4c78a8", [0, 1.05]),
+        "noisy_frequency": ("带噪声测量频率", "Noisy frequency", "#72b7ff", [0, 1.05]),
+        "loss": ("理想 - 带噪声差值", "Ideal - noisy", "#e45756", None),
+    }
+    title_text, z_title, base_color, z_range = mode_config.get(mode, mode_config["ideal_probability"])
+
+    non_target_x: List[float | None] = []
+    non_target_y: List[float | None] = []
+    non_target_z: List[float | None] = []
+    non_target_hover: List[str | None] = []
+    target_x: List[float | None] = []
+    target_y: List[float | None] = []
+    target_z: List[float | None] = []
+    target_hover: List[str | None] = []
+    marker_x: List[float] = []
+    marker_y: List[float] = []
+    marker_z: List[float] = []
+    marker_color: List[str] = []
+    marker_hover: List[str] = []
+
+    for row in rows:
+        basis = str(row["basis"])
+        iteration = int(row["iterations"])
+        value = float(row[mode])
+        ideal = float(row["ideal_probability"])
+        noisy = float(row["noisy_frequency"])
+        loss = float(row["loss"])
+        x = label_to_x[basis]
+        hover = (
+            f"Iteration: r={iteration}<br>"
+            f"Basis: {basis}<br>"
+            f"Ideal probability: {ideal:.6f}<br>"
+            f"Noisy frequency: {noisy:.6f}<br>"
+            f"Ideal - noisy: {loss:.6f}"
+        )
+        if basis == target_label:
+            target_x.extend([x, x, None])
+            target_y.extend([iteration, iteration, None])
+            target_z.extend([0.0, value, None])
+            target_hover.extend([hover, hover, None])
+            marker_color.append("#f58518")
+        else:
+            non_target_x.extend([x, x, None])
+            non_target_y.extend([iteration, iteration, None])
+            non_target_z.extend([0.0, value, None])
+            non_target_hover.extend([hover, hover, None])
+            marker_color.append(base_color)
+        marker_x.append(x)
+        marker_y.append(iteration)
+        marker_z.append(value)
+        marker_hover.append(hover)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter3d(
+            x=non_target_x,
+            y=non_target_y,
+            z=non_target_z,
+            mode="lines",
+            name="Other states",
+            line={"width": 7, "color": base_color},
+            text=non_target_hover,
+            hovertemplate="%{text}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter3d(
+            x=target_x,
+            y=target_y,
+            z=target_z,
+            mode="lines",
+            name=f"Target {target_label}",
+            line={"width": 11, "color": "#f58518"},
+            text=target_hover,
+            hovertemplate="%{text}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter3d(
+            x=marker_x,
+            y=marker_y,
+            z=marker_z,
+            mode="markers",
+            name="Values",
+            marker={"size": 4, "color": marker_color},
+            text=marker_hover,
+            hovertemplate="%{text}<extra></extra>",
+            showlegend=False,
+        )
+    )
+
+    z_axis = {"title": z_title}
+    if z_range is not None:
+        z_axis["range"] = z_range
+    elif marker_z:
+        min_z = min(0.0, min(marker_z))
+        max_z = max(0.0, max(marker_z))
+        padding = max(0.03, (max_z - min_z) * 0.12)
+        z_axis["range"] = [min_z - padding, max_z + padding]
+
+    fig.update_layout(
+        title={
+            "text": f"3D 迭代概率分布与损耗对照 - {title_text}",
+            "x": 0.0,
+            "xanchor": "left",
+            "y": 0.984,
+            "yanchor": "top",
+        },
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": 0.90,
+            "xanchor": "center",
+            "x": 0.5,
+            "bgcolor": "rgba(255,255,255,0.85)",
+        },
+        height=400,
+        margin={"l": 0, "r": 0, "t": 0, "b": 8},
+        scene={
+            "domain": {"x": [0.04, 0.96], "y": [0.00, 1]},
+            "aspectmode": "cube",
+            "xaxis": {
+                "title": "Basis state",
+                "tickmode": "array",
+                "tickvals": list(range(len(labels))),
+                "ticktext": labels,
+            },
+            "yaxis": {
+                "title": "Completed Grover iterations",
+                "tickmode": "array",
+                "tickvals": iterations,
+                "ticktext": [f"r={iteration}" for iteration in iterations],
+            },
+            "zaxis": z_axis,
+            "camera": {"eye": {"x": 1.25, "y": 1.85, "z": 0.55}},
+        },
+    )
+    return fig
+
+
 def plotly_counts(counts: Dict[str, int], target: str, n: int | None = None) -> "go.Figure":
     """Interactive bar chart for measurement counts.
 
