@@ -254,6 +254,9 @@ def simulate_measurements(
     target: str,
     iterations: int,
     shots: int = 2048,
+    one_qubit_error: float = 0.0,
+    two_qubit_error: float = 0.0,
+    readout_error: float = 0.0,
 ) -> Tuple[Optional[Dict[str, int]], Optional[str]]:
     """Run the measured Grover circuit on Qiskit Aer, if available.
 
@@ -266,13 +269,93 @@ def simulate_measurements(
 
     try:
         from qiskit_aer import AerSimulator
+        from qiskit_aer.noise import NoiseModel, ReadoutError, depolarizing_error
     except Exception as exc:  # pragma: no cover
         return None, f"qiskit-aer is not available: {exc}"
 
     try:
-        simulator = AerSimulator()
+        noise_model = None
+        if one_qubit_error > 0 or two_qubit_error > 0 or readout_error > 0:
+            noise_model = NoiseModel()
+            if one_qubit_error > 0:
+                one_error = depolarizing_error(one_qubit_error, 1)
+                noise_model.add_all_qubit_quantum_error(one_error, ["x", "sx", "h"])
+            if two_qubit_error > 0:
+                two_error = depolarizing_error(two_qubit_error, 2)
+                noise_model.add_all_qubit_quantum_error(two_error, ["cx"])
+            if readout_error > 0:
+                read_error = ReadoutError([[1 - readout_error, readout_error], [readout_error, 1 - readout_error]])
+                noise_model.add_all_qubit_readout_error(read_error)
+
+        simulator = AerSimulator(noise_model=noise_model) if noise_model is not None else AerSimulator()
         compiled = transpile(qc, simulator)
         result = simulator.run(compiled, shots=shots).result()
         return dict(result.get_counts()), None
     except Exception as exc:  # pragma: no cover
         return None, f"Aer simulation failed: {exc}"
+
+
+def analyze_noisy_iteration_scan(
+    n: int,
+    target: str,
+    max_iterations: int,
+    shots: int = 2048,
+    one_qubit_error: float = 0.001,
+    two_qubit_error: float = 0.01,
+    readout_error: float = 0.02,
+) -> Tuple[Optional[List[Dict[str, object]]], Optional[str]]:
+    """Compare ideal Grover amplification with a simple noisy Aer model.
+
+    The scan runs circuits with 0..max_iterations completed Grover iterations.
+    It is intentionally lightweight and pedagogical: the noise model is not a
+    calibrated device model, but it helps show how deeper circuits lose some of
+    the ideal amplitude-amplification advantage.
+    """
+    require_qiskit()
+
+    try:
+        from qiskit_aer import AerSimulator
+        from qiskit_aer.noise import NoiseModel, ReadoutError, depolarizing_error
+    except Exception as exc:  # pragma: no cover
+        return None, f"qiskit-aer noise tools are not available: {exc}"
+
+    try:
+        noise_model = NoiseModel()
+        if one_qubit_error > 0:
+            one_error = depolarizing_error(one_qubit_error, 1)
+            noise_model.add_all_qubit_quantum_error(one_error, ["x", "sx", "h"])
+        if two_qubit_error > 0:
+            two_error = depolarizing_error(two_qubit_error, 2)
+            noise_model.add_all_qubit_quantum_error(two_error, ["cx"])
+        if readout_error > 0:
+            read_error = ReadoutError([[1 - readout_error, readout_error], [readout_error, 1 - readout_error]])
+            noise_model.add_all_qubit_readout_error(read_error)
+
+        simulator = AerSimulator(noise_model=noise_model)
+        rows: List[Dict[str, object]] = []
+        for iterations in range(max_iterations + 1):
+            history = build_grover_history(n, target, iterations)
+            ideal_prob = target_probability(history[-1].statevector, target)
+
+            measured = build_grover_circuit(n, target, iterations, measure=True, add_barriers=False)
+            compiled = transpile(measured, simulator, optimization_level=1)
+            result = simulator.run(compiled, shots=shots).result()
+            counts = dict(result.get_counts())
+            target_count = int(counts.get(target, 0))
+            ops = compiled.count_ops()
+            cx_count = int(ops.get("cx", 0))
+            rows.append(
+                {
+                    "iterations": iterations,
+                    "ideal_target_probability": ideal_prob,
+                    "noisy_target_frequency": target_count / shots,
+                    "target_counts": target_count,
+                    "shots": shots,
+                    "depth": int(compiled.depth()),
+                    "operations": int(sum(ops.values())),
+                    "cx_count": cx_count,
+                }
+            )
+        return rows, None
+    except Exception as exc:  # pragma: no cover
+        return None, f"Noisy iteration scan failed: {exc}"

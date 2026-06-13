@@ -1,4 +1,4 @@
-"""Streamlit interface for the Qiskit-based Grover visualizer.
+﻿"""Streamlit interface for the Qiskit-based Grover visualizer.
 
 Run with:
     streamlit run app.py
@@ -14,6 +14,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from qiskit_grover_core import (
+    analyze_noisy_iteration_scan,
     basis_labels,
     build_grover_circuit,
     build_grover_history,
@@ -29,6 +30,7 @@ from visualization import (
     plotly_amplitudes,
     plotly_circuit_operation_view,
     plotly_counts,
+    plotly_noise_degradation_scan,
     plotly_probabilities,
     plotly_target_probability_curve,
 )
@@ -87,22 +89,20 @@ def step_explanation(kind: str, target: str) -> str:
     """Return a short teaching explanation for the selected Grover step."""
     if kind == "initial":
         return (
-            "当前步骤为 Hadamard 初始化后的均匀叠加态。此时所有计算基态具有相同的概率幅，"
-            f"目标态 |{target}> 还没有被突出。"
+            "当前步骤为 Hadamard 初始化后的均匀叠加态。"
+            f"此时所有计算基态具有相同概率幅，目标态 |{target}> 还没有被突出。"
         )
     if kind == "oracle":
         return (
-            # f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1，"
-            # "但概率是概率幅模平方，因此仅看概率图时通常不会立刻看到目标概率升高。"
-            f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1。"
+            f"当前步骤为 Oracle 相位翻转。Oracle 将目标态 |{target}> 的概率幅乘以 -1，"
+            "但概率是概率幅模平方，因此仅看概率图时通常不会立刻看到目标概率升高。"
         )
     if kind == "diffusion":
         return (
-            "当前步骤为 Diffusion，也就是关于平均概率幅的反演。它把 Oracle 产生的相位标记"
-            "转化为振幅放大，使目标态概率上升。"
+            "当前步骤为 Diffusion，也就是关于平均概率幅的反演。"
+            "它把 Oracle 产生的相位标记转化为振幅放大，使目标态概率上升。"
         )
     return "当前步骤展示 Grover 电路演化中的一个中间状态。"
-
 
 def make_state_rows(step, n: int, target: str) -> List[Dict[str, object]]:
     labels = basis_labels(n)
@@ -141,13 +141,18 @@ with st.sidebar:
     max_iterations = st.slider("最大 Grover 迭代次数", min_value=0, max_value=6, value=2 if n == 3 else 1)
     shots = st.slider("测量 shots", min_value=128, max_value=8192, value=2048, step=128)
     run_measurement = st.checkbox("运行 Aer 测量统计", value=True)
+    noisy_measurement = st.checkbox("测量统计使用同一噪声模型", value=False)
+    show_noise_analysis = st.checkbox("显示噪声/深度损耗分析", value=True)
+    noise_shots = st.slider("噪声扫描 shots", min_value=256, max_value=8192, value=2048, step=256)
+    one_qubit_error = st.slider("单比特门错误率", min_value=0.0, max_value=0.02, value=0.001, step=0.001, format="%.3f")
+    two_qubit_error = st.slider("双比特门错误率", min_value=0.0, max_value=0.08, value=0.01, step=0.002, format="%.3f")
+    readout_error = st.slider("读出错误率", min_value=0.0, max_value=0.10, value=0.02, step=0.005, format="%.3f")
 
     st.divider()
     st.markdown("**显示选项**")
     show_state_table = st.checkbox("显示 statevector 表格", value=True)
     show_3d = st.checkbox("显示 Plotly 交互式 3D 步进概率图", value=True)
     show_circuit = st.checkbox("显示 Qiskit 电路", value=True)
-
 try:
     history = build_grover_history(n, target, max_iterations)
     probability_points = target_probability_by_iteration(history, target)
@@ -164,7 +169,7 @@ expected_best = int(np.floor(np.pi / 4 * np.sqrt(2**n)))
 metric_cols = st.columns(4)
 metric_cols[0].metric("目标态", f"|{target}>")
 metric_cols[1].metric("总演化步骤", f"{len(history)}")
-metric_cols[2].metric("当前参数下最高目标态概率", f"{best_prob * 100:.2f}%", f"iter {best_iteration}")
+metric_cols[2].metric("最高目标态概率", f"{best_prob * 100:.2f}%", f"iter {best_iteration}")
 metric_cols[3].metric("经验最佳迭代", f"r ≈ {expected_best}")
 
 st.subheader("一、当前展示")
@@ -174,24 +179,20 @@ step_index = st.slider(
     max_value=len(history) - 1,
     value=current_prob_default_step,
     format="S%d",
-    help="这里放在当前展示区域，便于一边拖动一边观察概率幅和概率图的变化。",
+    help="拖动滑块观察每一步后的概率幅和概率变化。",
 )
 selected_step = history[step_index]
 current_prob = target_probability(selected_step.statevector, target)
 
 metric_cols1 = st.columns(2)
-metric_cols1[0].metric(f"当前步骤类型", f"{selected_step.kind}")
-metric_cols1[1].metric("当前步骤的目标态概率", f"{current_prob * 100:.2f}%")
-# st.write(f"当前展示：**{selected_step.title}**")
-# st.info(step_explanation(selected_step.kind, target))
-# st.metric("当前步骤的目标态概率", f"{current_prob * 100:.2f}%")
-
+metric_cols1[0].metric("当前步骤类型", f"{selected_step.kind}")
+metric_cols1[1].metric("当前目标态概率", f"{current_prob * 100:.2f}%")
 amp_fig = plotly_amplitudes(selected_step, n, target)
 prob_fig = plotly_probabilities(selected_step, n, target)
 
 left, right = st.columns(2)
 with left:
-    st.plotly_chart(amp_fig, use_container_width=True)
+    st.plotly_chart(amp_fig, use_container_width=True, key=f"amp_fig_{selected_step.index}_{n}_{target}")
     st.download_button(
         "下载当前概率幅交互图 HTML",
         data=plotly_to_html_bytes(amp_fig),
@@ -199,7 +200,7 @@ with left:
         mime="text/html",
     )
 with right:
-    st.plotly_chart(prob_fig, use_container_width=True)
+    st.plotly_chart(prob_fig, use_container_width=True, key=f"prob_fig_{selected_step.index}_{n}_{target}")
     st.download_button(
         "下载当前概率交互图 HTML",
         data=plotly_to_html_bytes(prob_fig),
@@ -215,7 +216,7 @@ st.info(step_explanation(selected_step.kind, target))
 
 st.subheader("二、目标态概率随迭代次数变化")
 curve_fig = plotly_target_probability_curve(probability_points)
-st.plotly_chart(curve_fig, use_container_width=True)
+st.plotly_chart(curve_fig, use_container_width=True, key=f"target_curve_{n}_{target}_{max_iterations}")
 st.write(
     f"在当前参数下，完整 Grover 迭代后的最高目标态概率出现在 **第 {best_iteration} 次迭代**，"
     f"目标态概率约为 **{best_prob * 100:.2f}%**。"
@@ -229,11 +230,10 @@ st.download_button(
 
 if show_3d:
     st.subheader("三、Plotly 交互式 3D 步进概率历史图")
-    st.caption("x轴为计算基态，y轴为演化步骤，z轴为对应测量概率。可以用鼠标旋转、缩放并悬停查看数值。")
+    st.caption("x 轴为计算基态，y 轴为演化步骤，z 轴为对应测量概率。可以旋转、缩放并悬停查看数值。")
     fig3d = plotly_3d_probability_history(history, n, target)
     with st.container(border=True):
-        # st.caption("该区域为独立交互图框：可旋转、缩放、拖动，并可悬停查看具体概率。")
-        st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True, "responsive": True})
+        st.plotly_chart(fig3d, use_container_width=True, config={"displayModeBar": True, "responsive": True}, key=f"probability_history_3d_{n}_{target}_{max_iterations}")
     st.download_button(
         "下载 3D 交互图 HTML",
         data=plotly_to_html_bytes(fig3d),
@@ -243,12 +243,10 @@ if show_3d:
 
 if show_circuit:
     st.subheader("四、Qiskit 量子电路")
-    # st.caption("Qiskit 的标准电路图本质上仍是静态图；因此这里额外提供一个 Plotly 交互式操作视图和操作表，用于悬停查看每个门的细节。")
     qc = build_grover_circuit(n, target, max_iterations, measure=True, add_barriers=True)
 
     circuit_tabs = st.tabs(["交互式操作视图", "操作表", "Qiskit 标准电路图"])
     with circuit_tabs[0]:
-        # st.caption("这个视图使用宽画布绘制；如果电路较长，可以在图框内横向滚动，避免门元件挤在一起。")
         circuit_view = plotly_circuit_operation_view(qc)
         circuit_width = max(760, 42 * (len(qc.data) + 2))
         render_scrollable_plotly(circuit_view, height=264, min_width=circuit_width)
@@ -276,17 +274,69 @@ if show_circuit:
             st.code(str(qc.draw(output="text", fold=-1)), language="text")
             st.caption(f"绘图错误信息：{exc}")
 
-st.subheader("五、测量统计验证")
+if show_noise_analysis:
+    st.subheader("五、噪声与电路深度损耗分析")
+    st.caption(
+        "该模块使用一个简化的 depolarizing + readout noise 模型，扫描 0 到当前最大 Grover 迭代次数，"
+        "对比理想目标态概率、带噪声测量频率，以及 transpile 后的电路深度。"
+    )
+    with st.spinner("Running noisy iteration scan..."):
+        noise_rows, noise_error = analyze_noisy_iteration_scan(
+            n,
+            target,
+            max_iterations,
+            shots=noise_shots,
+            one_qubit_error=one_qubit_error,
+            two_qubit_error=two_qubit_error,
+            readout_error=readout_error,
+        )
+    if noise_rows is None:
+        st.warning(f"Noise analysis is unavailable: {noise_error}")
+    else:
+        noise_fig = plotly_noise_degradation_scan(noise_rows)
+        st.plotly_chart(
+            noise_fig,
+            use_container_width=True,
+            config={"displayModeBar": True},
+            key=f"noise_scan_{n}_{target}_{max_iterations}_{noise_shots}_{one_qubit_error}_{two_qubit_error}_{readout_error}",
+        )
+        st.dataframe(noise_rows, hide_index=True, use_container_width=True)
+        st.info(
+            "解释：理想的格罗弗曲线在封闭的数学模型中表现出了振幅放大现象。"
+            "噪声曲线估算了随着电路层数增加，栅极误差和读出误差如何导致观测到的目标频率降低。"
+        )
+st.subheader("六、测量统计验证")
 if run_measurement:
-    with st.spinner("正在运行 Qiskit Aer 测量模拟……"):
-        counts, error = simulate_measurements(n, target, max_iterations, shots=shots)
+    measurement_mode = "noisy" if noisy_measurement else "ideal"
+    with st.spinner(f"正在运行 Qiskit Aer {measurement_mode} 测量模拟……"):
+        counts, error = simulate_measurements(
+            n,
+            target,
+            max_iterations,
+            shots=shots,
+            one_qubit_error=one_qubit_error if noisy_measurement else 0.0,
+            two_qubit_error=two_qubit_error if noisy_measurement else 0.0,
+            readout_error=readout_error if noisy_measurement else 0.0,
+        )
     if counts is None:
         st.warning(f"测量统计暂不可用：{error}")
         st.write("这通常是因为没有安装 qiskit-aer。你仍然可以使用 statevector 中间态图完成主要展示。")
     else:
-        # st.caption("横坐标现在按计算基态顺序显示为 |q0q1...>。Qiskit 原始 counts 是普通经典比特串；这里已转换成和前文一致的 ket 标记，并补全未出现的零计数基态。")
+        st.caption(
+            "当前测量统计模式："
+            + (
+                f"带噪声模拟（1q={one_qubit_error:.3f}, 2q={two_qubit_error:.3f}, readout={readout_error:.3f}）。"
+                if noisy_measurement
+                else "理想 Aer shots 抽样，不包含 gate/readout noise。"
+            )
+        )
         counts_fig = plotly_counts(counts, target, n=n)
-        st.plotly_chart(counts_fig, use_container_width=True, config={"displayModeBar": True})
+        st.plotly_chart(
+            counts_fig,
+            use_container_width=True,
+            config={"displayModeBar": True},
+            key=f"measurement_counts_{n}_{target}_{max_iterations}_{shots}_{noisy_measurement}_{one_qubit_error}_{two_qubit_error}_{readout_error}",
+        )
         target_counts = counts.get(target, 0)
         st.write(f"目标态 `{target}` 出现次数：**{target_counts} / {shots}**，频率约为 **{target_counts / shots * 100:.2f}%**。")
         st.download_button(

@@ -383,6 +383,60 @@ def plotly_target_probability_curve(points: Sequence[Tuple[int, float]]) -> "go.
     return fig
 
 
+def plotly_noise_degradation_scan(rows: Sequence[Dict[str, object]]) -> "go.Figure":
+    """Plot ideal probability, noisy target frequency, and circuit depth."""
+    iterations = [int(row["iterations"]) for row in rows]
+    ideal = [float(row["ideal_target_probability"]) for row in rows]
+    noisy = [float(row["noisy_target_frequency"]) for row in rows]
+    depths = [int(row["depth"]) for row in rows]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=iterations,
+            y=ideal,
+            mode="lines+markers+text",
+            text=[f"{100*y:.1f}%" for y in ideal],
+            textposition="top center",
+            name="Ideal target probability",
+            hovertemplate="Iterations: %{x}<br>Ideal probability: %{y:.6f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=iterations,
+            y=noisy,
+            mode="lines+markers+text",
+            text=[f"{100*y:.1f}%" for y in noisy],
+            textposition="bottom center",
+            name="Noisy measured frequency",
+            hovertemplate="Iterations: %{x}<br>Noisy frequency: %{y:.6f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=iterations,
+            y=depths,
+            name="Transpiled circuit depth",
+            yaxis="y2",
+            opacity=0.24,
+            marker={"color": "#6f7688"},
+            hovertemplate="Iterations: %{x}<br>Depth: %{y}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        title="Noise and circuit-depth degradation scan",
+        xaxis_title="Completed Grover iterations",
+        yaxis={"title": "Target-state probability / frequency", "range": [0, 1.05]},
+        yaxis2={"title": "Circuit depth", "overlaying": "y", "side": "right", "showgrid": False},
+        height=460,
+        bargap=0.35,
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+    )
+    fig.update_xaxes(tickmode="array", tickvals=iterations)
+    return fig
+
+
 def plotly_counts(counts: Dict[str, int], target: str, n: int | None = None) -> "go.Figure":
     """Interactive bar chart for measurement counts.
 
@@ -399,27 +453,26 @@ def plotly_counts(counts: Dict[str, int], target: str, n: int | None = None) -> 
     total = sum(values) if values else 1
     target_label = f"|{target}>"
     categories = ["Target state" if label == target_label else "Other state" for label in labels]
+    colors = ["#f58518" if category == "Target state" else "#4c78a8" for category in categories]
+    hover = [
+        f"Basis state: {label}<br>Raw Qiskit key: {raw}<br>Counts: {value}<br>Frequency: {value / total:.6f}"
+        for label, raw, value in zip(labels, raw_keys, values)
+    ]
 
-    fig = go.Figure()
-    for category in ["Other state", "Target state"]:
-        xs = [label for label, cat in zip(labels, categories) if cat == category]
-        ys = [value for value, cat in zip(values, categories) if cat == category]
-        hover = [
-            f"Basis state: {label}<br>Raw Qiskit key: {raw}<br>Counts: {value}<br>Frequency: {value / total:.6f}"
-            for label, raw, value, cat in zip(labels, raw_keys, values, categories)
-            if cat == category
-        ]
-        fig.add_trace(
-            go.Bar(
-                x=xs,
-                y=ys,
-                name=category,
-                text=[str(y) if y > 0 else "0" for y in ys],
-                textposition="outside",
-                hovertext=hover,
-                hovertemplate="%{hovertext}<extra></extra>",
-            )
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=values,
+            name="Basis states",
+            text=[str(y) if y > 0 else "0" for y in values],
+            textposition="outside",
+            hovertext=hover,
+            hovertemplate="%{hovertext}<extra></extra>",
+            marker={"color": colors},
         )
+    )
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Other state", marker={"size": 10, "color": "#4c78a8"}))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Target state", marker={"size": 10, "color": "#f58518"}))
     fig.update_layout(
         title=f"Measurement counts from Qiskit Aer, target={target_label}",
         xaxis_title="Measured basis state, displayed as |q0q1...>",
@@ -428,6 +481,7 @@ def plotly_counts(counts: Dict[str, int], target: str, n: int | None = None) -> 
         bargap=0.25,
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
     )
+    fig.update_xaxes(categoryorder="array", categoryarray=labels)
     fig.update_yaxes(range=[0, max(values + [1]) * 1.15])
     return fig
 
