@@ -1,0 +1,62 @@
+\section{Grover算法原理}
+
+\subsection{问题模型}
+
+设搜索空间大小为
+\[
+N=2^n,
+\]
+其中\(n\)为量子比特数。目标态记为\(|\omega\rangle\)。初始状态\(|0\rangle^{\otimes n}\)经过Hadamard门后变为均匀叠加态：
+\[
+|s\rangle = H^{\otimes n}|0\rangle^{\otimes n}
+= \frac{1}{\sqrt{N}}\sum_{x=0}^{N-1}|x\rangle.
+\]
+
+对于单目标搜索，目标态的初始测量概率为
+\[
+P_0=\left|\frac{1}{\sqrt{N}}\right|^2=\frac{1}{N}.
+\]
+当\(n=3\)时，\(N=8\)，因此目标态初始概率只有\(12.5\%\)。
+
+\subsection{Oracle相位翻转}
+
+Oracle的作用是识别目标态，并只改变目标态的相位：
+\[
+O|\omega\rangle=-|\omega\rangle,\qquad O|x\rangle=|x\rangle\quad(x\ne \omega).
+\]
+
+因此，Oracle后目标态概率幅的符号发生翻转，但概率
+\[
+P_\omega = |a_\omega|^2
+\]
+不会因为单纯的符号改变而上升。这一点是本项目可视化的重点之一：在概率幅图中可以看到目标态柱子翻到零轴下方，而在概率图中目标态柱子的高度暂时不变。
+
+\subsection{Diffusion均值倒置}
+
+Diffusion算子可写为
+\[
+D=2|s\rangle\langle s|-I.
+\]
+从概率幅角度看，它等价于把每个概率幅\(a_i\)关于平均概率幅\(\bar{a}\)做反演：
+\[
+a_i' = 2\bar{a}-a_i,\qquad
+\bar{a}=\frac{1}{N}\sum_{i=0}^{N-1}a_i.
+\]
+
+Oracle把目标态振幅翻成负值后，会改变全体振幅的平均值。Diffusion再对所有振幅做均值倒置，于是目标态振幅从负值被反演到较大的正值，非目标态振幅则被压低。这样，相位信息被转化为测量概率的提升。
+
+\subsection{理论概率公式}
+
+令
+\[
+\sin\theta=\frac{1}{\sqrt{N}}.
+\]
+完成\(r\)次完整Grover迭代后，目标态理论概率为
+\[
+P_r=\sin^2((2r+1)\theta).
+\]
+最佳迭代次数近似为
+\[
+r^\ast \approx \left\lfloor \frac{\pi}{4}\sqrt{N}\right\rceil.
+\]
+由于本项目只展示2到3个量子比特，搜索空间很小，目标态概率会在少数几次迭代内迅速升高，继续迭代还会出现“过迭代”导致概率回落的现象。

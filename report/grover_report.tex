@@ -1,0 +1,68 @@
+\documentclass[UTF8,a4paper,zihao=-4]{ctexart}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\geometry{left=2.5cm,right=2.5cm,top=2.6cm,bottom=2.6cm}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!60!black,
+  citecolor=blue!60!black
+}
+
+\lstdefinestyle{codestyle}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!65!black},
+  commentstyle=\color{green!40!black},
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=codestyle}
+
+\newcommand{\figplaceholder}[2]{
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{#1}{
+      \includegraphics[width=0.88\linewidth]{#1}
+    }{
+      \fbox{\parbox[c][5.0cm][c]{0.82\linewidth}{\centering
+      图像文件尚未生成：\\ \path{#1}\\[0.5em]
+      可运行 \texttt{python main.py --n 3 --target 101 --iterations 2} 生成。}}
+    }
+    \caption{#2}
+  \end{figure}
+}
+
+\title{\bfseries Grover搜索算法中振幅放大过程的步进式3D展示}
+\author{学生姓名：\underline{\hspace{4cm}} \quad 学号：\underline{\hspace{4cm}}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/00_abstract}
+\input{sections/01_background}
+\input{sections/02_principles}
+\input{sections/03_system_design}
+\input{sections/04_implementation}
+\input{sections/05_visualization}
+\input{sections/06_results}
+\input{sections/07_features_limits}
+\input{sections/08_conclusion}
+\input{sections/09_references}
+
+\end{document}

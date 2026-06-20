@@ -1,0 +1,57 @@
+\section{实验结果与分析}
+
+\subsection{3量子比特目标态\texorpdfstring{\(|101\rangle\)}{|101>}示例}
+
+选取\(n=3\)、目标态\(|101\rangle\)、迭代次数为2。此时搜索空间大小为\(N=8\)，初始每个基态概率幅为
+\[
+\frac{1}{\sqrt{8}}\approx 0.353553,
+\]
+每个基态概率为\(1/8=0.125\)。
+
+\begin{table}[H]
+\centering
+\caption{\(n=3\)、目标态\(|101\rangle\)时目标态概率幅和概率变化}
+\begin{tabular}{llll}
+\toprule
+步骤 & 操作 & 目标态概率幅 & 目标态概率 \\
+\midrule
+S0 & Hadamard均匀叠加 & \(+0.353553\) & \(0.125000\) \\
+S1 & 第1次Oracle相位翻转 & \(-0.353553\) & \(0.125000\) \\
+S2 & 第1次Diffusion均值倒置 & \(+0.883883\) & \(0.781250\) \\
+S3 & 第2次Oracle相位翻转 & \(-0.883883\) & \(0.781250\) \\
+S4 & 第2次Diffusion均值倒置 & \(+0.972272\) & \(0.945312\) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从表中可以看出：
+\begin{itemize}
+  \item Oracle步骤只改变目标态概率幅符号，不改变目标态概率；
+  \item Diffusion步骤把目标态概率幅大幅推高；
+  \item 两次完整迭代后，目标态概率达到约\(94.53\%\)；
+  \item 如果继续迭代，目标概率会越过最佳点并下降，因此Grover算法需要选择合适的迭代次数。
+\end{itemize}
+
+\figplaceholder{../outputs/figures/00_initial_iter0_amplitude.png}{初始均匀叠加态的概率幅分布}
+\figplaceholder{../outputs/figures/01_oracle_iter1_amplitude.png}{第1次Oracle后目标态概率幅被翻转}
+\figplaceholder{../outputs/figures/02_diffusion_iter1_probability.png}{第1次Diffusion后目标态概率明显上升}
+\figplaceholder{../outputs/figures/target_probability_curve.png}{目标态概率随完整Grover迭代次数变化}
+
+\subsection{理论结果对照}
+
+对\(N=8\)，有
+\[
+\theta=\arcsin\left(\frac{1}{\sqrt{8}}\right).
+\]
+代入理论公式：
+\[
+P_1=\sin^2(3\theta)=0.78125,
+\]
+\[
+P_2=\sin^2(5\theta)=0.9453125.
+\]
+这与程序中statevector计算得到的结果一致，说明电路构造和可视化数据提取是正确的。
+
+\subsection{2量子比特情况}
+
+当\(n=2\)时，\(N=4\)。单目标Grover搜索在一次完整迭代后即可把目标态概率提升到1。这个例子适合在课堂中快速展示完整的振幅放大过程；而\(n=3\)时概率变化更平滑，更适合观察多次迭代中的上升和回落。

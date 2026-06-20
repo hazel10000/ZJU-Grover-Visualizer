@@ -1,0 +1,57 @@
+\section{系统设计}
+
+\subsection{项目结构}
+
+本项目代码结构如下：
+
+\begin{lstlisting}[language=bash]
+grover_qiskit_ui_refined/
+|-- app.py                    # Streamlit交互界面
+|-- main.py                   # 命令行图片和CSV导出入口
+|-- qiskit_grover_core.py     # Grover电路构造与statevector分析
+|-- visualization.py          # Matplotlib/Plotly可视化函数
+|-- requirements.txt          # Python依赖
+`-- README.md                 # 项目说明
+\end{lstlisting}
+
+其中，\texttt{qiskit\_grover\_core.py}负责算法和量子态演化，\texttt{visualization.py}负责图形绘制，\texttt{app.py}负责交互界面组织，\texttt{main.py}用于离线生成报告图片和CSV数据。
+
+\subsection{技术选型}
+
+项目采用的主要技术如下：
+
+\begin{table}[H]
+\centering
+\caption{项目技术选型}
+\begin{tabular}{lll}
+\toprule
+模块 & 工具 & 作用 \\
+\midrule
+量子电路 & Qiskit & 构造Hadamard、Oracle、Diffusion和测量电路 \\
+中间态分析 & Statevector & 提取每一步后的精确量子态 \\
+静态绘图 & Matplotlib & 导出概率幅图、概率图和标准电路图 \\
+交互绘图 & Plotly & 绘制交互式柱状图、3D概率历史图和动画 \\
+网页界面 & Streamlit & 提供参数选择、滑块和图表展示 \\
+可选仿真 & Qiskit Aer & 进行shots测量统计和简化噪声对照 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{步进式历史状态设计}
+
+为了展示每一步的变化，程序没有只保存最终电路，而是定义了\texttt{GroverStep}数据结构，用于记录每一个中间阶段：
+\begin{itemize}
+  \item \texttt{index}：步骤编号；
+  \item \texttt{kind}：步骤类型，包括\texttt{initial}、\texttt{oracle}、\texttt{diffusion}；
+  \item \texttt{iteration}：当前属于第几轮Grover迭代；
+  \item \texttt{circuit}：当前量子电路副本；
+  \item \texttt{statevector}：当前电路对应的精确量子态。
+\end{itemize}
+
+核心流程为：
+\begin{enumerate}
+  \item 对所有量子比特施加Hadamard门，保存初始均匀叠加态；
+  \item 每轮迭代先施加Oracle，保存Oracle相位翻转后的statevector；
+  \item 再施加Diffusion，保存均值倒置后的statevector；
+  \item 将所有步骤传给可视化模块，绘制逐步演化图。
+\end{enumerate}

@@ -1,0 +1,30 @@
+\section{关键实现方法}
+
+\subsection{目标态Oracle构造}
+
+项目允许用户选择任意目标态。以目标态\(|101\rangle\)为例，Oracle需要只对该态执行相位翻转。实现中先对目标比特串中的0位施加\(X\)门，把目标态映射到\(|111\rangle\)，然后施加多控制\(Z\)门，最后再用\(X\)门还原：
+
+\begin{lstlisting}[language=Python]
+def apply_oracle(qc, target, add_barrier=True):
+    n = len(target)
+    zero_qubits = [i for i, bit in enumerate(target) if bit == "0"]
+    for qubit in zero_qubits:
+        qc.x(qubit)
+    _apply_multi_controlled_z(qc, list(range(n)))
+    for qubit in zero_qubits:
+        qc.x(qubit)
+\end{lstlisting}
+
+这样可以统一支持2比特和3比特下的任意目标态。
+
+\subsection{Diffusion算子构造}
+
+Diffusion采用标准的\(H-X-\mathrm{MCZ}-X-H\)结构实现。程序中特别加入全局相位校正，使保存的statevector与教材中的
+\[
+a_i'=2\bar{a}-a_i
+\]
+形式一致，便于在报告和图像中解释“关于平均概率幅的反演”。
+
+\subsection{大小端顺序处理}
+
+Qiskit内部statevector索引采用little-endian顺序，而课堂展示通常希望按电路从上到下的量子比特顺序显示，例如\(|q_0q_1q_2\rangle\)。因此项目在\texttt{statevector\_in\_top\_order}和\texttt{probabilities\_in\_top\_order}中做了顺序转换，使界面标签、表格和电路图保持一致，避免把\(|101\rangle\)误读为另一种比特顺序。
