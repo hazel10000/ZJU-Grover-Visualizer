@@ -30,7 +30,6 @@ from visualization import (
     plotly_distribution_comparison_3d,
     plotly_noise_degradation_scan,
     plotly_probabilities,
-    plotly_step_animation,
     plotly_target_probability_curve,
 )
 
@@ -141,12 +140,11 @@ with st.sidebar:
 
     st.divider()
     st.markdown("**显示选项**")
-    animation_duration_ms = st.slider("步进动画间隔（毫秒）", 250, 1800, 700, 50)
     show_state_table = st.checkbox("显示 statevector 表格", value=True)
     show_circuit = st.checkbox("显示 Qiskit 电路", value=True)
     show_experiment_analysis = st.checkbox("显示理想/带噪声实验对照", value=True)
 
-    with st.expander("高级：噪声模型参数", expanded=True):
+    with st.expander("高级：噪声模型参数", expanded=False):
         noise_shots = st.slider("噪声对照 shots", min_value=256, max_value=8192, value=2048, step=256)
         one_qubit_error = st.slider("单比特门错误率", min_value=0.0, max_value=0.02, value=0.001, step=0.001, format="%.3f")
         two_qubit_error = st.slider("双比特门错误率", min_value=0.0, max_value=0.08, value=0.01, step=0.002, format="%.3f")
@@ -170,76 +168,57 @@ metric_cols[1].metric("总演化步骤", f"{len(history)}")
 metric_cols[2].metric("最高目标态概率", f"{best_prob * 100:.2f}%", f"iter {best_iteration}")
 metric_cols[3].metric("经验最佳迭代", f"r ≈ {expected_best}")
 
-st.subheader("一、当前展示")
+st.subheader("一、Grover 迭代步骤")
+# st.subheader("一、当前展示")
 if "step_index" not in st.session_state or st.session_state.step_index >= len(history):
     st.session_state.step_index = current_prob_default_step
 if "step_slider_nonce" not in st.session_state:
     st.session_state.step_slider_nonce = 0
 
-animation_fig = plotly_step_animation(history, n, target, frame_duration_ms=animation_duration_ms)
-st.plotly_chart(
-    animation_fig,
-    use_container_width=True,
-    config={"displayModeBar": True, "responsive": True},
-    key=f"step_animation_{n}_{target}_{max_iterations}_{animation_duration_ms}",
-)
+selected_step = history[int(st.session_state.step_index)]
+current_prob = target_probability(selected_step.statevector, target)
+metric_cols1 = st.columns(2)
+metric_cols1[0].metric("步骤类型", f"{selected_step.kind}")
+metric_cols1[1].metric("目标态概率", f"{current_prob * 100:.2f}%")
+st.info(step_explanation(selected_step.kind, target))
 
-# with st.expander("补充检查：手动选帧、下载与 statevector", expanded=False):
-with st.expander("补充检查：手动选帧与 statevector", expanded=False):
-    control_cols = st.columns([1, 1, 1])
-    with control_cols[0]:
-        if st.button("上一帧", use_container_width=True):
-            st.session_state.step_index = max(0, st.session_state.step_index - 1)
-            st.session_state.step_slider_nonce += 1
-    with control_cols[1]:
-        if st.button("下一帧", use_container_width=True):
-            st.session_state.step_index = min(len(history) - 1, st.session_state.step_index + 1)
-            st.session_state.step_slider_nonce += 1
-    with control_cols[2]:
-        if st.button("重置", use_container_width=True):
-            st.session_state.step_index = 0
-            st.session_state.step_slider_nonce += 1
+amp_fig = plotly_amplitudes(selected_step, n, target)
+prob_fig = plotly_probabilities(selected_step, n, target)
+left, right = st.columns(2)
+with left:
+    st.plotly_chart(amp_fig, use_container_width=True, key=f"amp_fig_{selected_step.index}_{n}_{target}")
+with right:
+    st.plotly_chart(prob_fig, use_container_width=True, key=f"prob_fig_{selected_step.index}_{n}_{target}")
 
+control_cols = st.columns([1, 1, 1, 5], vertical_alignment="center")
+with control_cols[0]:
+    if st.button("上一步", use_container_width=True):
+        st.session_state.step_index = max(0, st.session_state.step_index - 1)
+        st.session_state.step_slider_nonce += 1
+with control_cols[1]:
+    if st.button("下一步", use_container_width=True):
+        st.session_state.step_index = min(len(history) - 1, st.session_state.step_index + 1)
+        st.session_state.step_slider_nonce += 1
+with control_cols[2]:
+    if st.button("重置", use_container_width=True):
+        st.session_state.step_index = 0
+        st.session_state.step_slider_nonce += 1
+with control_cols[3]:
     step_index = st.slider(
-        "选择用于详细检查的演化步骤",
+        "选择演化步骤",
         min_value=0,
         max_value=len(history) - 1,
         value=int(st.session_state.step_index),
         format="S%d",
-        help="该滑块只控制下方单步检查区；主动画请使用动画图内部的播放按钮和进度条。",
+        # help="该滑块控制下方步骤说明、概率幅柱状图和测量概率柱状图。",
+        label_visibility="collapsed",
         key=f"step_slider_{st.session_state.step_slider_nonce}",
     )
-    if step_index != st.session_state.step_index:
-        st.session_state.step_index = step_index
+if step_index != st.session_state.step_index:
+    st.session_state.step_index = step_index
 
-    selected_step = history[step_index]
-    current_prob = target_probability(selected_step.statevector, target)
-    metric_cols1 = st.columns(2)
-    metric_cols1[0].metric("检查步骤类型", f"{selected_step.kind}")
-    metric_cols1[1].metric("检查目标态概率", f"{current_prob * 100:.2f}%")
-    st.info(step_explanation(selected_step.kind, target))
-
-    amp_fig = plotly_amplitudes(selected_step, n, target)
-    prob_fig = plotly_probabilities(selected_step, n, target)
-    left, right = st.columns(2)
-    with left:
-        st.plotly_chart(amp_fig, use_container_width=True, key=f"amp_fig_{selected_step.index}_{n}_{target}")
-        # st.download_button(
-        #     "下载当前概率幅交互图 HTML",
-        #     data=plotly_to_html_bytes(amp_fig),
-        #     file_name=f"step_{selected_step.index:02d}_amplitude.html",
-        #     mime="text/html",
-        # )
-    with right:
-        st.plotly_chart(prob_fig, use_container_width=True, key=f"prob_fig_{selected_step.index}_{n}_{target}")
-        # st.download_button(
-        #     "下载当前概率交互图 HTML",
-        #     data=plotly_to_html_bytes(prob_fig),
-        #     file_name=f"step_{selected_step.index:02d}_probability.html",
-        #     mime="text/html",
-        # )
-
-    if show_state_table:
+if show_state_table:
+    with st.expander("statevector 表格", expanded=False):
         st.dataframe(make_state_rows(selected_step, n, target), hide_index=True, use_container_width=True)
 
 st.subheader("二、目标态概率随迭代次数变化")
@@ -256,8 +235,8 @@ if show_circuit:
     circuit_tabs = st.tabs(["交互式操作视图", "操作表", "Qiskit 标准电路图"])
     with circuit_tabs[0]:
         circuit_view = plotly_circuit_operation_view(qc)
-        circuit_width = max(760, 42 * (len(qc.data) + 2))
-        render_scrollable_plotly(circuit_view, height=264, min_width=circuit_width)
+        circuit_width = max(680, 32 * (len(qc.data) + 2))
+        render_scrollable_plotly(circuit_view, height=238, min_width=circuit_width)
         # st.download_button(
         #     "下载交互式电路操作视图 HTML",
         #     data=plotly_to_html_bytes(circuit_view),
@@ -284,10 +263,6 @@ if show_circuit:
 
 if show_experiment_analysis:
     st.subheader("四、理想与带噪声实验对照")
-    st.caption(
-        "该模块扫描 0 到当前最大 Grover 迭代次数，用同一组噪声参数对比理想 statevector 概率、"
-        "带噪声 Aer shots 频率，以及二者的差值。"
-    )
     with st.spinner("正在运行理想/带噪声分布对照扫描……"):
         distribution_rows, experiment_rows, experiment_error = analyze_distribution_comparison(
             n,
@@ -301,24 +276,34 @@ if show_experiment_analysis:
     if distribution_rows is None or experiment_rows is None:
         st.warning(f"实验对照暂不可用：{experiment_error}")
     else:
+        
         final_row = experiment_rows[-1]
+
+        summary_cols = st.columns(5)
+        summary_cols[0].metric("理想目标概率", f"{float(final_row['ideal_target_probability']) * 100:.2f}%")
+        summary_cols[1].metric("带噪声频率", f"{float(final_row['noisy_target_frequency']) * 100:.2f}%")
+        summary_cols[2].metric("目标态损耗", f"{float(final_row['target_loss']) * 100:.2f}%")
+        summary_cols[3].metric("电路深度", f"{int(final_row['depth'])}")
+        summary_cols[4].metric("CX 门数量", f"{int(final_row['cx_count'])}")
+
         comparison_options = ["理想概率分布", "带噪声测量频率", "理想 - 带噪声差值"]
         if "distribution_comparison_mode" not in st.session_state:
             st.session_state.distribution_comparison_mode = comparison_options[0]
-        comparison_mode_label = st.session_state.distribution_comparison_mode
-        plot_col, summary_col = st.columns([0.7, 0.3], gap="large")
-        with plot_col:
+
+        experiment_tabs = st.tabs(["3D 分布对照", "目标态概率与噪声损耗"])
+        with experiment_tabs[0]:
+            st.radio(
+                "3D 图显示模式",
+                comparison_options,
+                key="distribution_comparison_mode",
+                horizontal=True,
+                label_visibility="collapsed",
+            )
             comparison_mode = {
                 "理想概率分布": "ideal_probability",
                 "带噪声测量频率": "noisy_frequency",
                 "理想 - 带噪声差值": "loss",
-            }[comparison_mode_label]
-            # st.radio(
-            #     "3D 图显示模式",
-            #     comparison_options,
-            #     key="distribution_comparison_mode",
-            #     horizontal=True,
-            # )
+            }[st.session_state.distribution_comparison_mode]
             comparison_fig = plotly_distribution_comparison_3d(distribution_rows, n, target, mode=comparison_mode)
             st.plotly_chart(
                 comparison_fig,
@@ -326,28 +311,7 @@ if show_experiment_analysis:
                 config={"displayModeBar": True},
                 key=f"distribution_comparison_{n}_{target}_{max_iterations}_{noise_shots}_{one_qubit_error}_{two_qubit_error}_{readout_error}_{comparison_mode}",
             )
-            st.radio(
-                "3D 图显示模式",
-                comparison_options,
-                key="distribution_comparison_mode",
-                horizontal=True,
-            )
-
-        with summary_col:
-            st.markdown("**最终迭代摘要**")
-            st.metric("理想目标概率", f"{float(final_row['ideal_target_probability']) * 100:.2f}%")
-            st.metric("带噪声频率", f"{float(final_row['noisy_target_frequency']) * 100:.2f}%")
-            st.metric("目标态损耗", f"{float(final_row['target_loss']) * 100:.2f}%")
-            st.metric("电路深度", f"{int(final_row['depth'])}")
-            st.metric("CX 门数量", f"{int(final_row['cx_count'])}")
-
-        st.info(
-            "解释：理想的 Grover 曲线在封闭的数学模型中表现出了振幅放大现象。"
-            "带噪声频率来自简化的 depolarizing + readout noise 模型，展示了更深电路中栅极误差和读出误差如何累积。"
-        )
-
-        detail_tabs = st.tabs(["目标态损耗曲线", "迭代摘要表", "完整分布数据"])
-        with detail_tabs[0]:
+        with experiment_tabs[1]:
             noise_fig = plotly_noise_degradation_scan(experiment_rows)
             st.plotly_chart(
                 noise_fig,
@@ -355,9 +319,18 @@ if show_experiment_analysis:
                 config={"displayModeBar": True},
                 key=f"noise_scan_{n}_{target}_{max_iterations}_{noise_shots}_{one_qubit_error}_{two_qubit_error}_{readout_error}",
             )
-        with detail_tabs[1]:
+
+        # summary_cols = st.columns(5)
+        # summary_cols[0].metric("理想目标概率", f"{float(final_row['ideal_target_probability']) * 100:.2f}%")
+        # summary_cols[1].metric("带噪声频率", f"{float(final_row['noisy_target_frequency']) * 100:.2f}%")
+        # summary_cols[2].metric("目标态损耗", f"{float(final_row['target_loss']) * 100:.2f}%")
+        # summary_cols[3].metric("电路深度", f"{int(final_row['depth'])}")
+        # summary_cols[4].metric("CX 门数量", f"{int(final_row['cx_count'])}")
+
+        # with st.expander("迭代摘要表", expanded=False):
+        with st.expander("迭代摘要表与完整分布数据", expanded=False):
             st.dataframe(experiment_rows, hide_index=True, use_container_width=True)
-        with detail_tabs[2]:
+        # with st.expander("完整分布数据", expanded=False):
             st.dataframe(distribution_rows, hide_index=True, use_container_width=True)
 
 st.subheader("五、理论解释与错误迭代")
@@ -381,19 +354,19 @@ with theory_tabs[0]:
 
     st.markdown(
         rf"""
-对于单个目标态的 Grover 搜索，令搜索空间大小为 \(N=2^n={search_space_size}\)，并定义
+对于单个目标态的 Grover 搜索，令搜索空间大小为 $N=2^n={search_space_size}$，并定义
 
 $$
 \sin(\theta)=\frac{{1}}{{\sqrt{{N}}}}
 $$
 
-完成 \(r\) 次 Grover 迭代后，目标态的理论概率为
+完成 $r$ 次 Grover 迭代后，目标态的理论概率为
 
 $$
 P_r=\sin^2((2r+1)\theta)
 $$
 
-当前参数下 \(\theta \approx {theta:.6f}\)，经验最优迭代次数约为
+当前参数下 $\theta \approx {theta:.6f}$，经验最优迭代次数约为
 
 $$
 r_\text{{opt}}\approx \left\lfloor \frac{{\pi}}{{4}}\sqrt{{N}} \right\rfloor = {expected_best}.
@@ -440,7 +413,7 @@ with theory_tabs[1]:
 with theory_tabs[2]:
     st.markdown(
         r"""
-Oracle 的作用是将目标态概率幅乘以 \(-1\)，即完成相位标记。由于测量概率等于概率幅模平方，
+Oracle 的作用是将目标态概率幅乘以 $-1$，即完成相位标记。由于测量概率等于概率幅模平方，
 所以仅执行 Oracle 后，目标态概率通常不会升高。随后 Diffusion 执行关于平均概率幅的反演：
 
 $$

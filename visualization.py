@@ -8,7 +8,6 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from qiskit_grover_core import (
     GroverStep,
@@ -225,22 +224,22 @@ def plotly_3d_probability_history(history: Sequence[GroverStep], n: int, target:
         height=720,
         autosize=True,
         scene={
-            "domain": {"x": [0.0, 1.0], "y": [0.02, 0.96]},
+            "domain": {"x": [0.0, 1.0], "y": [0.08, 0.98]},
             "aspectmode": "cube",
             "xaxis": {
-                "title": "Basis state",
+                "title": "状态",
                 "tickmode": "array",
                 "tickvals": list(range(len(labels))),
                 "ticktext": labels,
             },
             "yaxis": {
-                "title": "Evolution step",
+                "title": "步骤",
                 "tickmode": "array",
                 "tickvals": list(range(len(history))),
                 "ticktext": [f"S{step.index}" for step in history],
             },
-            "zaxis": {"title": "Probability", "range": [0, 1.0]},
-            "camera": {"eye": {"x": 1.55, "y": 1.75, "z": 1.15}},
+            "zaxis": {"title": "概率", "range": [0, 1.0]},
+            "camera": {"eye": {"x": 1.9, "y": 1.5, "z": 1.1}},
         },
         legend={
             "orientation": "v",
@@ -305,13 +304,14 @@ def plotly_amplitudes(step: GroverStep, n: int, target: str) -> "go.Figure":
     ymin = min(-1.05, float(np.min(real_amps)) - 0.1)
     ymax = max(1.05, float(np.max(real_amps)) + 0.1)
     fig.update_layout(
-        title=f"Real amplitudes - {step.title}, target={target_label}",
-        xaxis_title="Basis state",
-        yaxis_title="Real amplitude",
+        title={"text": "概率幅", "x": 0.5, "xanchor": "center", "y": 0.98, "font": {"size": 15}},
+        xaxis_title="状态",
+        yaxis_title="幅值",
         yaxis_range=[ymin, ymax],
-        height=440,
+        height=270,
+        margin={"l": 8, "r": 8, "t": 72, "b": 8},
         bargap=0.25,
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.00, "xanchor": "left", "x": 0},
     )
     fig.update_xaxes(categoryorder="array", categoryarray=labels)
     fig.add_hline(y=0, line_width=1)
@@ -346,169 +346,16 @@ def plotly_probabilities(step: GroverStep, n: int, target: str) -> "go.Figure":
     fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Other state", marker={"size": 10, "color": "#4c78a8"}))
     fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", name="Target state", marker={"size": 10, "color": "#f58518"}))
     fig.update_layout(
-        title=f"Measurement probabilities - {step.title}, target={target_label}",
-        xaxis_title="Basis state",
-        yaxis_title="Probability",
+        title={"text": "测量概率", "x": 0.5, "xanchor": "center", "y": 0.98, "font": {"size": 15}},
+        xaxis_title="状态",
+        yaxis_title="概率",
         yaxis_range=[0, 1.05],
-        height=440,
+        height=270,
+        margin={"l": 8, "r": 8, "t": 72, "b": 8},
         bargap=0.25,
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.00, "xanchor": "left", "x": 0},
     )
     fig.update_xaxes(categoryorder="array", categoryarray=labels)
-    return fig
-
-
-def plotly_step_animation(
-    history: Sequence[GroverStep],
-    n: int,
-    target: str,
-    frame_duration_ms: int = 700,
-) -> "go.Figure":
-    """Animated side-by-side amplitude/probability view driven by Plotly frames."""
-    labels = basis_labels(n)
-    target_label = f"|{target}>"
-    colors = ["#f58518" if label == target_label else "#4c78a8" for label in labels]
-
-    def frame_values(step: GroverStep):
-        amps = statevector_in_top_order(step.statevector, n)
-        real_amps = np.real_if_close(amps, tol=1000).real.astype(float)
-        probs = probabilities_in_top_order(step.statevector, n).astype(float)
-        amp_hover = [
-            f"Step: S{step.index} ({step.kind})<br>Basis: {label}<br>Real amplitude: {amp:.6f}<br>Probability: {prob:.6f}"
-            for label, amp, prob in zip(labels, real_amps, probs)
-        ]
-        prob_hover = [
-            f"Step: S{step.index} ({step.kind})<br>Basis: {label}<br>Probability: {prob:.6f}<br>Real amplitude: {amp:.6f}"
-            for label, prob, amp in zip(labels, probs, real_amps)
-        ]
-        return real_amps, probs, amp_hover, prob_hover
-
-    first_amps, first_probs, first_amp_hover, first_prob_hover = frame_values(history[0])
-    fig = make_subplots(
-        rows=1,
-        cols=2,
-        subplot_titles=("实数概率幅", "测量概率"),
-        horizontal_spacing=0.12,
-    )
-    fig.add_trace(
-        go.Bar(
-            x=labels,
-            y=first_amps,
-            marker={"color": colors},
-            text=[f"{value:.3f}" for value in first_amps],
-            textposition="outside",
-            hovertext=first_amp_hover,
-            hovertemplate="%{hovertext}<extra></extra>",
-            showlegend=False,
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Bar(
-            x=labels,
-            y=first_probs,
-            marker={"color": colors},
-            text=[f"{100 * value:.1f}%" for value in first_probs],
-            textposition="outside",
-            hovertext=first_prob_hover,
-            hovertemplate="%{hovertext}<extra></extra>",
-            showlegend=False,
-        ),
-        row=1,
-        col=2,
-    )
-
-    frames = []
-    for step in history:
-        amps, probs, amp_hover, prob_hover = frame_values(step)
-        frames.append(
-            go.Frame(
-                name=str(step.index),
-                data=[
-                    go.Bar(
-                        y=amps,
-                        text=[f"{value:.3f}" for value in amps],
-                        hovertext=amp_hover,
-                        marker={"color": colors},
-                    ),
-                    go.Bar(
-                        y=probs,
-                        text=[f"{100 * value:.1f}%" for value in probs],
-                        hovertext=prob_hover,
-                        marker={"color": colors},
-                    ),
-                ],
-                layout=go.Layout(
-                    title_text=f"Grover 步进动画 - S{step.index}: {step.kind}, iteration {step.iteration}, target={target_label}"
-                ),
-            )
-        )
-    fig.frames = frames
-
-    slider_steps = [
-        {
-            "args": [
-                [str(step.index)],
-                {
-                    "frame": {"duration": frame_duration_ms, "redraw": True},
-                    "mode": "immediate",
-                    "transition": {"duration": 180},
-                },
-            ],
-            "label": f"S{step.index}",
-            "method": "animate",
-        }
-        for step in history
-    ]
-    play_args = {
-        "frame": {"duration": frame_duration_ms, "redraw": True},
-        "fromcurrent": True,
-        "mode": "immediate",
-        "transition": {"duration": 180},
-    }
-    pause_args = {
-        "frame": {"duration": 0, "redraw": False},
-        "mode": "immediate",
-        "transition": {"duration": 0},
-    }
-
-    fig.update_layout(
-        title=f"Grover 步进动画 - S0: initial, iteration 0, target={target_label}",
-        height=540,
-        margin={"l": 24, "r": 24, "t": 76, "b": 118},
-        bargap=0.25,
-        updatemenus=[
-            {
-                "type": "buttons",
-                "direction": "left",
-                "x": 0.01,
-                "y": -0.16,
-                "xanchor": "left",
-                "yanchor": "top",
-                "pad": {"r": 10, "t": 0, "b": 0},
-                "showactive": False,
-                "buttons": [
-                    {"label": "播放", "method": "animate", "args": [None, play_args]},
-                    {"label": "暂停", "method": "animate", "args": [[None], pause_args]},
-                ],
-            }
-        ],
-        sliders=[
-            {
-                "active": 0,
-                "currentvalue": {"prefix": "步骤："},
-                "x": 0.20,
-                "len": 0.74,
-                "y": -0.10,
-                "pad": {"t": 0, "b": 12},
-                "steps": slider_steps,
-            }
-        ],
-    )
-    fig.update_xaxes(categoryorder="array", categoryarray=labels)
-    fig.update_yaxes(title_text="实数概率幅", range=[-1.05, 1.05], row=1, col=1)
-    fig.update_yaxes(title_text="测量概率", range=[0, 1.05], row=1, col=2)
     return fig
 
 
@@ -580,13 +427,21 @@ def plotly_noise_degradation_scan(rows: Sequence[Dict[str, object]]) -> "go.Figu
         )
     )
     fig.update_layout(
-        title="Noise and circuit-depth degradation scan",
-        xaxis_title="Completed Grover iterations",
-        yaxis={"title": "Target-state probability / frequency", "range": [0, 1.05]},
-        yaxis2={"title": "Circuit depth", "overlaying": "y", "side": "right", "showgrid": False},
-        height=460,
+        title={"text": ""},
+        xaxis_title="迭代次数",
+        yaxis={"title": "目标态概率 / 频率", "range": [0, 1.05]},
+        yaxis2={"title": "电路深度", "overlaying": "y", "side": "right", "showgrid": False},
+        height=340,
+        margin={"l": 8, "r": 8, "t": 18, "b": 18},
         bargap=0.35,
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        legend={
+            "orientation": "h",
+            "yanchor": "top",
+            "y": 0.98,
+            "xanchor": "left",
+            "x": 0.02,
+            "bgcolor": "rgba(255,255,255,0.72)",
+        },
     )
     fig.update_xaxes(tickmode="array", tickvals=iterations)
     return fig
@@ -695,7 +550,7 @@ def plotly_distribution_comparison_3d(
         )
     )
 
-    z_axis = {"title": z_title}
+    z_axis = {"title": "值"}
     if z_range is not None:
         z_axis["range"] = z_range
     elif marker_z:
@@ -705,40 +560,37 @@ def plotly_distribution_comparison_3d(
         z_axis["range"] = [min_z - padding, max_z + padding]
 
     fig.update_layout(
-        title={
-            "text": f"3D 迭代概率分布与损耗对照 - {title_text}",
-            "x": 0.0,
-            "xanchor": "left",
-            "y": 0.984,
-            "yanchor": "top",
-        },
+        title={"text": ""},
         legend={
             "orientation": "h",
-            "yanchor": "top",
-            "y": 0.90,
+            "yanchor": "bottom",
+            "y": 0.03,
             "xanchor": "center",
             "x": 0.5,
-            "bgcolor": "rgba(255,255,255,0.85)",
+            "bgcolor": "rgba(255,255,255,0.72)",
         },
-        height=400,
-        margin={"l": 0, "r": 0, "t": 0, "b": 8},
+        height=440,
+        margin={"l": 0, "r": 0, "t": 0, "b": 0},
         scene={
-            "domain": {"x": [0.04, 0.96], "y": [0.00, 1]},
+            "domain": {"x": [0.02, 0.98], "y": [0.06, 0.98]},
             "aspectmode": "cube",
             "xaxis": {
-                "title": "Basis state",
+                "title": "状态",
                 "tickmode": "array",
                 "tickvals": list(range(len(labels))),
                 "ticktext": labels,
             },
             "yaxis": {
-                "title": "Completed Grover iterations",
+                "title": "迭代",
                 "tickmode": "array",
                 "tickvals": iterations,
                 "ticktext": [f"r={iteration}" for iteration in iterations],
             },
             "zaxis": z_axis,
-            "camera": {"eye": {"x": 1.25, "y": 1.85, "z": 0.55}},
+            "camera": {
+                "eye": {"x": 1.62, "y": 1.45, "z": 0.88},
+                "center": {"x": 0.0, "y": 0.0, "z": -0.18},
+            },
         },
     )
     return fig
@@ -927,7 +779,7 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
         )
 
     # Horizontal wires.
-    x_spacing = 0.82
+    x_spacing = 0.62
     max_x = (max([row["column"] for row in scheduled_rows], default=0) + 1) * x_spacing
     for label in y_labels:
         y = y_map[label]
@@ -1047,9 +899,9 @@ def plotly_circuit_operation_view(qc) -> "go.Figure":
 
     # Invert y-axis so q0 appears at the top.
     fig.update_layout(
-        title="Interactive Qiskit-style circuit view",
-        height=max(360, 90 + 60 * len(y_labels)),
-        margin={"l": 106, "r": 24, "t": 34, "b": 12},
+        title={"text": ""},
+        height=max(320, 78 + 54 * len(y_labels)),
+        margin={"l": 58, "r": 18, "t": 24, "b": 2},
         plot_bgcolor="white",
         paper_bgcolor="white",
     )
