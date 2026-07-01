@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (MiKTeX 26.5) (preloaded format=xelatex 2026.6.21)  1 JUL 2026 16:56
+This is XeTeX, Version 3.141592653-2.6-0.999998 (MiKTeX 26.5) (preloaded format=xelatex 2026.6.21)  1 JUL 2026 21:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -814,7 +814,23 @@ Overfull \hbox (45.97086pt too wide) in paragraph at lines 114--115
 []\TU/SimSun(0)/m/n/12.045 为 了 得 到 每 一 步 后 的 概 率 幅 数 据，|  程 序 没 有 只 保 存 最 终 电 路，|  而 是 在 \TU/lmtt/m/n/12.045 build_grover_history
  []
 
-[10]) (sections/05_visualization.tex [11]) (sections/06_results.tex [12]
+[10]) (sections/05_visualization.tex [11]
+File: images/web_crops/sidebar_combined.png Graphic file (type bmp)
+<images/web_crops/sidebar_combined.png>
+File: images/web_crops/web_step_view.png Graphic file (type bmp)
+<images/web_crops/web_step_view.png>
+ [12]
+File: images/web_crops/web_target_curve.png Graphic file (type bmp)
+<images/web_crops/web_target_curve.png>
+ [13]
+File: images/web_crops/web_circuit_view.png Graphic file (type bmp)
+<images/web_crops/web_circuit_view.png>
+ [14]
+File: images/web_crops/web_noise_view.png Graphic file (type bmp)
+<images/web_crops/web_noise_view.png>
+File: images/web_crops/web_theory_view.png Graphic file (type bmp)
+<images/web_crops/web_theory_view.png>
+) (sections/06_results.tex [15] [16]
 File: ../outputs/figures/00_initial_iter0_amplitude.png Graphic file (type bmp)
 <../outputs/figures/00_initial_iter0_amplitude.png>
 File: ../outputs/figures/01_oracle_iter1_amplitude.png Graphic file (type bmp)
@@ -827,21 +843,21 @@ File: ../outputs/figures/04_diffusion_iter2_amplitude.png Graphic file (type bmp
 <../outputs/figures/04_diffusion_iter2_amplitude.png>
 File: ../outputs/figures/target_probability_curve.png Graphic file (type bmp)
 <../outputs/figures/target_probability_curve.png>
- [13] [14]) (sections/07_features_limits.tex) (sections/08_conclusion.tex [15]) (sections/09_references.tex) [16] (grover_report.aux)
+ [17] [18]) (sections/07_features_limits.tex [19]) (sections/08_conclusion.tex) (sections/09_references.tex) [20] (grover_report.aux)
  ***********
 LaTeX2e <2026-06-01>
 L3 programming layer <2022/08/05>
  ***********
 Package rerunfilecheck Info: File `grover_report.out' has not changed.
-(rerunfilecheck)             Checksum: F8AE5A1372555B87C7EA5279EBF911DF;3058.
+(rerunfilecheck)             Checksum: 911230F990410E4B6C831FEAC6826207;4038.
  ) 
 Here is how much of TeX's memory you used:
- 19709 strings out of 402628
- 409087 string characters out of 5444702
- 1259501 words of memory out of 5000000
- 48476 multiletter control sequences out of 15000+600000
+ 19770 strings out of 402628
+ 411820 string characters out of 5444702
+ 1195813 words of memory out of 5000000
+ 48530 multiletter control sequences out of 15000+600000
  642375 words of font info for 127 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 93i,8n,111p,405b,1858s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,8n,111p,491b,1858s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on grover_report.xdv (16 pages, 197864 bytes).
+Output written on grover_report.xdv (20 pages, 249148 bytes).

@@ -1,10 +1,10 @@
 # Fdb version 4
-["xdvipdfmx"] 1782896197.45443 "grover_report.xdv" "grover_report.pdf" "grover_report" 1782896198.46406 0
-  "grover_report.xdv" 1782896197 197864 d1c5bc991f8216fa2e9b845e5cd951a1 "xelatex"
+["xdvipdfmx"] 1782914354.61297 "grover_report.xdv" "grover_report.pdf" "grover_report" 1782914356.85636 0
+  "grover_report.xdv" 1782914354 249148 ba71ed1546a2d85195782ce4933b4743 "xelatex"
   (generated)
   "grover_report.pdf"
   (rewritten before read)
-["xelatex"] 1782896194.59483 "d:/Users/陈映舟/Desktop/grover_qiskit_ui_refined/report/grover_report.tex" "grover_report.xdv" "grover_report" 1782896198.45659 0
+["xelatex"] 1782914351.43562 "d:/Users/陈映舟/Desktop/grover_qiskit_ui_refined/report/grover_report.tex" "grover_report.xdv" "grover_report" 1782914356.84866 0
   "../outputs/figures/00_initial_iter0_amplitude.png" 1782894648 58399 fbb23e9ac7527cae656cb7af5d67c068 ""
   "../outputs/figures/01_oracle_iter1_amplitude.png" 1782894648 54114 1e98f8e2a554fb6dd006aab9d7613e9c ""
   "../outputs/figures/02_diffusion_iter1_amplitude.png" 1782894648 59776 89f1713d9d97775c1e01b59f49d2972f ""
@@ -131,16 +131,22 @@
   "D:/Program/MiKTeX/tex/xelatex/xecjk/xeCJK.sty" 1659726270 183137 ed372550124703b2b73cbcc0b47cb20f ""
   "D:/Program/MiKTeX/tex/xelatex/xecjk/xeCJKfntef.sty" 1659726270 39577 b470f8a1dbecc9c45c9bf05ca7db9188 ""
   "d:/Users/陈映舟/Desktop/grover_qiskit_ui_refined/report/grover_report.tex" 1782887163 1680 717161b79f4cd631b82b0f586cac058a ""
-  "grover_report.aux" 1782896197 4338 ee9d9232a56834885733a7d19031de01 "xelatex"
-  "grover_report.out" 1782896197 3058 f8ae5a1372555b87c7ea5279ebf911df "xelatex"
+  "grover_report.aux" 1782914354 7185 ff2f03ac97f64f5868641f02d44c2fc8 "xelatex"
+  "grover_report.out" 1782914354 4038 911230f990410e4b6c831feac6826207 "xelatex"
   "grover_report.tex" 1782887163 1680 717161b79f4cd631b82b0f586cac058a ""
+  "images/web_crops/sidebar_combined.png" 1782913485 98172 ba1007d84cb29852512e089831a92868 ""
+  "images/web_crops/web_circuit_view.png" 1782913903 74200 6c9192788a9f980e881df81ae53041bb ""
+  "images/web_crops/web_noise_view.png" 1782912481 240783 23ac301e7154f5526b69c92b4e058cfa ""
+  "images/web_crops/web_step_view.png" 1782912269 301722 62ceeb6ce79d3712b08bf6f3842b8bb5 ""
+  "images/web_crops/web_target_curve.png" 1782912576 176735 199ae091f4749804e9a4a820b04a8e74 ""
+  "images/web_crops/web_theory_view.png" 1782911484 169012 bb05c091a53e760006557e0b2f3695cc ""
   "sections/00_abstract.tex" 1782895424 1513 d5dda1f338b83fec7133c054c9cba8bd ""
   "sections/01_background.tex" 1782895741 3160 48c9f7df511dcdc256cc7201ff7126c8 ""
   "sections/02_principles.tex" 1782896190 7767 57abaecde86523ab10f5c2c4a5a7f3e5 ""
   "sections/03_system_design.tex" 1782894031 3763 d4228e7b01e1c2825c064a369f149ffb ""
-  "sections/04_implementation.tex" 1782895337 5279 76addf7d735ec5bad7245d23891fa298 ""
-  "sections/05_visualization.tex" 1782894779 1668 ce60c02253bc8cf6b365acea12d94379 ""
-  "sections/06_results.tex" 1782895079 4439 c87f1942197b929b7b67881ff3b2d620 ""
+  "sections/04_implementation.tex" 1782914354 5102 d51777ed5c109777484d05a5518542c0 ""
+  "sections/05_visualization.tex" 1782913997 7815 8897568c28dfe2d1e0b6b3222c817ab1 ""
+  "sections/06_results.tex" 1782914027 8070 d11ef81597c23f0fc9a8e57d373cf2cb ""
   "sections/07_features_limits.tex" 1782893548 1318 d8440f19178dfcbaf160b68e18808069 ""
   "sections/08_conclusion.tex" 1782893597 975 be41065abe072cdf57ff2704a836284d ""
   "sections/09_references.tex" 1781964908 455 2863bcc7f40ec877f8ce7c3ed8d0df4d ""

@@ -45,7 +45,7 @@ def apply_oracle(qc, target, add_barrier=True):
 
 因此，对于任意用户输入的目标比特串，Oracle都会实现
 \[
-O|\omega\rangle=-|\omega\rangle,\qquad O|x\rangle=|x\rangle\quad(x\ne \omega).
+    O|\omega\rangle=-|\omega\rangle,\qquad O|x\rangle=|x\rangle\quad(x\ne \omega).
 \]
 
 \subsubsection{Diffusion算子构造}
@@ -111,48 +111,22 @@ def build_grover_circuit(n, target, iterations,
 
 \subsubsection{中间态保存}
 
-为了得到每一步后的概率幅数据，程序没有只保存最终电路，而是在\texttt{build\_grover\_history}中逐步构造电路。每完成Hadamard初始化、Oracle或Diffusion操作，就复制当前电路，并用\texttt{Statevector.from\_instruction(qc)}计算当前量子态：
+为了得到每一步后的概率幅数据，程序没有只保存最终电路，而是在\texttt{build\_grover\_history}中逐步构造电路。核心思想是：Hadamard初始化后保存一次状态；每一轮Grover迭代中，Oracle后保存一次状态，Diffusion后再保存一次状态。其流程可以概括为：
 
 \begin{lstlisting}[language=Python]
-def build_grover_history(n, target, iterations):
-    validate_problem(n, target, iterations)
+history = []
 
-    qc = QuantumCircuit(n)
-    history = []
+apply_hadamard(qc)
+save_step("initial", 0, qc)
 
-    qc.h(range(n))
-    qc.barrier()
-    history.append(GroverStep(
-        index=0,
-        kind="initial",
-        iteration=0,
-        circuit=qc.copy(),
-        statevector=Statevector.from_instruction(qc),
-    ))
+for r in range(1, iterations + 1):
+    apply_oracle(qc, target)
+    save_step("oracle", r, qc)
 
-    step_index = 1
-    for iteration in range(1, iterations + 1):
-        apply_oracle(qc, target, add_barrier=True)
-        history.append(GroverStep(
-            index=step_index,
-            kind="oracle",
-            iteration=iteration,
-            circuit=qc.copy(),
-            statevector=Statevector.from_instruction(qc),
-        ))
-        step_index += 1
-
-        apply_diffusion(qc, n, add_barrier=True)
-        history.append(GroverStep(
-            index=step_index,
-            kind="diffusion",
-            iteration=iteration,
-            circuit=qc.copy(),
-            statevector=Statevector.from_instruction(qc),
-        ))
-        step_index += 1
-
-    return history
+    apply_diffusion(qc)
+    save_step("diffusion", r, qc)
 \end{lstlisting}
 
-该历史序列直接作为后续概率幅图、概率图和3D步进图的数据来源。
+其中，\texttt{save\_step}在实际程序中对应向\texttt{history}列表追加一个\texttt{GroverStep}对象。该对象会记录步骤编号、步骤类型、当前迭代轮数、当前电路副本以及当前statevector。statevector由\texttt{Statevector.from\_instruction(qc)}计算得到，表示当前电路执行到这一阶段后的精确量子态。
+
+这样得到的历史序列可以直接作为后续概率幅图、概率图、目标态概率曲线和3D步进图的数据来源。对于课程项目而言，这一设计的意义在于把一次完整Grover迭代拆成可观察的中间状态，从而分别展示Oracle相位翻转和Diffusion均值倒置对目标态概率幅的不同影响。
