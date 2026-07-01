@@ -1,4 +1,4 @@
-\section{实验结果与分析}
+\section{运行结果}
 
 \subsection{3量子比特目标态\texorpdfstring{\(|101\rangle\)}{|101>}示例}
 
@@ -32,12 +32,75 @@ S4 & 第2次Diffusion均值倒置 & \(+0.972272\) & \(0.945312\) \\
   \item 如果继续迭代，目标概率会越过最佳点并下降，因此Grover算法需要选择合适的迭代次数。
 \end{itemize}
 
-\figplaceholder{../outputs/figures/00_initial_iter0_amplitude.png}{初始均匀叠加态的概率幅分布}
-\figplaceholder{../outputs/figures/01_oracle_iter1_amplitude.png}{第1次Oracle后目标态概率幅被翻转}
-\figplaceholder{../outputs/figures/02_diffusion_iter1_probability.png}{第1次Diffusion后目标态概率明显上升}
-\figplaceholder{../outputs/figures/target_probability_curve.png}{目标态概率随完整Grover迭代次数变化}
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/00_initial_iter0_amplitude.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/00_initial_iter0_amplitude.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{初始均匀叠加态的概率幅分布}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/01_oracle_iter1_amplitude.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/01_oracle_iter1_amplitude.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{第1次Oracle后目标态概率幅被翻转}
+  \end{subfigure}
 
-\subsection{理论结果对照}
+  \vspace{0.8em}
+
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/02_diffusion_iter1_amplitude.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/02_diffusion_iter1_amplitude.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{第1次Diffusion后目标态概率幅被放大}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/03_oracle_iter2_amplitude.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/03_oracle_iter2_amplitude.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{第2次Oracle后目标态概率幅再次翻转}
+  \end{subfigure}
+
+  \vspace{0.8em}
+
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/04_diffusion_iter2_amplitude.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/04_diffusion_iter2_amplitude.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{第2次Diffusion后目标态概率幅继续增大}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    \IfFileExists{../outputs/figures/target_probability_curve.png}{
+      \includegraphics[width=\linewidth]{../outputs/figures/target_probability_curve.png}
+    }{
+      \fbox{\parbox[c][4.0cm][c]{0.92\linewidth}{\centering 图像文件尚未生成}}
+    }
+    \caption{目标态概率随完整Grover迭代次数变化}
+  \end{subfigure}
+  \caption{\(n=3\)、目标态\(|101\rangle\)时两次Grover迭代中的概率幅变化}
+\end{figure}
+
+\subsection{与理论结果对照}
 
 对\(N=8\)，有
 \[
@@ -50,8 +113,9 @@ P_1=\sin^2(3\theta)=0.78125,
 \[
 P_2=\sin^2(5\theta)=0.9453125.
 \]
-这与程序中statevector计算得到的结果一致，说明电路构造和可视化数据提取是正确的。
+这与程序中statevector计算得到的结果一致，说明电路构造和图表数据提取是正确的。
 
 \subsection{2量子比特情况}
 
-当\(n=2\)时，\(N=4\)。单目标Grover搜索在一次完整迭代后即可把目标态概率提升到1。这个例子适合在课堂中快速展示完整的振幅放大过程；而\(n=3\)时概率变化更平滑，更适合观察多次迭代中的上升和回落。
+当\(n=2\)时，\(N=4\)。单目标Grover搜索在一次完整迭代后即可把目标态概率提升到1。
+当\(n=3\)时，目标态概率在多次迭代中先上升后回落，程序通过目标态概率曲线记录这一过迭代现象。

@@ -1,30 +1,158 @@
-\section{关键实现方法}
+\subsection{关键实现方法}
 
-\subsection{目标态Oracle构造}
+\subsubsection{多控制相位翻转}
 
-项目允许用户选择任意目标态。以目标态\(|101\rangle\)为例，Oracle需要只对该态执行相位翻转。实现中先对目标比特串中的0位施加\(X\)门，把目标态映射到\(|111\rangle\)，然后施加多控制\(Z\)门，最后再用\(X\)门还原：
+Oracle和Diffusion都需要对\(|11\cdots 1\rangle\)执行相位翻转。程序将这个操作封装为\texttt{\_apply\_multi\_controlled\_z}。当量子比特数为1时直接使用\(Z\)门；当量子比特数大于1时，程序用\(H-\mathrm{MCX}-H\)把多控制\(X\)门转化为多控制\(Z\)门：
+
+\begin{lstlisting}[language=Python]
+def _apply_multi_controlled_z(qc, qubits):
+    if len(qubits) == 1:
+        qc.z(qubits[0])
+        return
+
+    controls = qubits[:-1]
+    target = qubits[-1]
+    qc.h(target)
+    qc.mcx(controls, target)
+    qc.h(target)
+\end{lstlisting}
+
+以3量子比特为例，该函数会对\(|111\rangle\)态乘以\(-1\)，其余计算基态保持不变。
+
+\subsubsection{目标态Oracle构造}
+
+项目允许用户选择任意目标态。Oracle的目标是只对该目标态执行相位翻转。实现时，程序先把目标态临时映射到\(|11\cdots 1\rangle\)，再调用多控制相位翻转，最后恢复原来的计算基顺序。
+
+例如目标态为\(|101\rangle\)时，中间的第2位为0，程序会先对对应量子比特施加\(X\)门，把\(|101\rangle\)映射到\(|111\rangle\)。完成多控制\(Z\)门后，再施加一次\(X\)门还原：
 
 \begin{lstlisting}[language=Python]
 def apply_oracle(qc, target, add_barrier=True):
     n = len(target)
-    zero_qubits = [i for i, bit in enumerate(target) if bit == "0"]
-    for qubit in zero_qubits:
-        qc.x(qubit)
+
+    for qubit, bit in enumerate(target):
+        if bit == "0":
+            qc.x(qubit)
+
     _apply_multi_controlled_z(qc, list(range(n)))
-    for qubit in zero_qubits:
-        qc.x(qubit)
+
+    for qubit, bit in enumerate(target):
+        if bit == "0":
+            qc.x(qubit)
+
+    if add_barrier:
+        qc.barrier()
 \end{lstlisting}
 
-这样可以统一支持2比特和3比特下的任意目标态。
-
-\subsection{Diffusion算子构造}
-
-Diffusion采用标准的\(H-X-\mathrm{MCZ}-X-H\)结构实现。程序中特别加入全局相位校正，使保存的statevector与教材中的
+因此，对于任意用户输入的目标比特串，Oracle都会实现
 \[
-a_i'=2\bar{a}-a_i
+O|\omega\rangle=-|\omega\rangle,\qquad O|x\rangle=|x\rangle\quad(x\ne \omega).
 \]
-形式一致，便于在报告和图像中解释“关于平均概率幅的反演”。
 
-\subsection{大小端顺序处理}
+\subsubsection{Diffusion算子构造}
 
-Qiskit内部statevector索引采用little-endian顺序，而课堂展示通常希望按电路从上到下的量子比特顺序显示，例如\(|q_0q_1q_2\rangle\)。因此项目在\texttt{statevector\_in\_top\_order}和\texttt{probabilities\_in\_top\_order}中做了顺序转换，使界面标签、表格和电路图保持一致，避免把\(|101\rangle\)误读为另一种比特顺序。
+Diffusion算子采用标准的\(H-X-\mathrm{MCZ}-X-H\)结构。程序先用Hadamard门和\(X\)门把关于均匀叠加态的反演转换为对\(|11\cdots 1\rangle\)的相位翻转，再恢复基底：
+
+\begin{lstlisting}[language=Python]
+def apply_diffusion(qc, n, add_barrier=True):
+    for qubit in range(n):
+        qc.h(qubit)
+    for qubit in range(n):
+        qc.x(qubit)
+
+    _apply_multi_controlled_z(qc, list(range(n)))
+
+    for qubit in range(n):
+        qc.x(qubit)
+    for qubit in range(n):
+        qc.h(qubit)
+
+    qc.global_phase += np.pi
+
+    if add_barrier:
+        qc.barrier()
+\end{lstlisting}
+
+其中，\texttt{qc.global\_phase += np.pi}用于校正全局相位。经过该处理后，保存的statevector与
+\[
+    a_i'=2\bar{a}-a_i
+\]
+一致，Diffusion后的概率幅可以直接解释为关于平均概率幅的反演。
+
+\subsubsection{完整Grover电路构造}
+
+完整电路由Hadamard初始化和若干轮Grover迭代组成。程序在\texttt{build\_grover\_circuit}中先创建量子电路，再对全部量子比特施加Hadamard门，随后按迭代次数重复调用Oracle和Diffusion：
+
+\begin{lstlisting}[language=Python]
+def build_grover_circuit(n, target, iterations,
+                         measure=False, add_barriers=True):
+    validate_problem(n, target, iterations)
+
+    if measure:
+        qc = QuantumCircuit(n, n)
+    else:
+        qc = QuantumCircuit(n)
+
+    qc.h(range(n))
+    if add_barriers:
+        qc.barrier()
+
+    for _ in range(iterations):
+        apply_oracle(qc, target, add_barrier=add_barriers)
+        apply_diffusion(qc, n, add_barrier=add_barriers)
+
+    if measure:
+        for qubit in range(n):
+            qc.measure(qubit, n - 1 - qubit)
+
+    return qc
+\end{lstlisting}
+
+测量模式下，程序把第\(i\)个量子比特测量到第\(n-1-i\)个经典比特，使最终输出的比特串顺序与用户输入的目标态顺序一致。
+
+\subsubsection{中间态保存}
+
+为了得到每一步后的概率幅数据，程序没有只保存最终电路，而是在\texttt{build\_grover\_history}中逐步构造电路。每完成Hadamard初始化、Oracle或Diffusion操作，就复制当前电路，并用\texttt{Statevector.from\_instruction(qc)}计算当前量子态：
+
+\begin{lstlisting}[language=Python]
+def build_grover_history(n, target, iterations):
+    validate_problem(n, target, iterations)
+
+    qc = QuantumCircuit(n)
+    history = []
+
+    qc.h(range(n))
+    qc.barrier()
+    history.append(GroverStep(
+        index=0,
+        kind="initial",
+        iteration=0,
+        circuit=qc.copy(),
+        statevector=Statevector.from_instruction(qc),
+    ))
+
+    step_index = 1
+    for iteration in range(1, iterations + 1):
+        apply_oracle(qc, target, add_barrier=True)
+        history.append(GroverStep(
+            index=step_index,
+            kind="oracle",
+            iteration=iteration,
+            circuit=qc.copy(),
+            statevector=Statevector.from_instruction(qc),
+        ))
+        step_index += 1
+
+        apply_diffusion(qc, n, add_barrier=True)
+        history.append(GroverStep(
+            index=step_index,
+            kind="diffusion",
+            iteration=iteration,
+            circuit=qc.copy(),
+            statevector=Statevector.from_instruction(qc),
+        ))
+        step_index += 1
+
+    return history
+\end{lstlisting}
+
+该历史序列直接作为后续概率幅图、概率图和3D步进图的数据来源。
