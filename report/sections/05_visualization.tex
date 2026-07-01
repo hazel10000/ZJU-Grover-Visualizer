@@ -18,10 +18,10 @@
 高级噪声参数区用于设置带噪声Aer模拟中的shots数量、单比特门错误率、双比特门错误率和读出错误率。
 通过这些参数，用户可以在同一界面中观察理想Grover演化和带噪声测量结果之间的差异。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/sidebar_combined.png}{
-    \includegraphics[width=0.95\textwidth]{images/web_crops/sidebar_combined.png}
+    \includegraphics[width=0.82\textwidth]{images/web_crops/sidebar_combined.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入侧边栏参数截图}}
   }
@@ -39,10 +39,10 @@
 % Oracle步骤后，目标态概率幅的符号发生翻转，但测量概率保持不变；
 % Diffusion步骤后，目标态概率幅被推高，对应的测量概率明显上升。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/web_step_view.png}{
-    \includegraphics[width=0.95\textwidth]{images/web_crops/web_step_view.png}
+    \includegraphics[width=0.86\textwidth]{images/web_crops/web_step_view.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入当前步骤页面截图}}
   }
@@ -64,10 +64,10 @@
 该曲线也说明Grover算法并不是迭代次数越多越好，当迭代超过合适次数后，目标态概率会出现回落。
 % 因此，页面同时给出经验最佳迭代次数，帮助解释Grover算法中迭代次数选择的重要性。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/web_target_curve.png}{
-    \includegraphics[width=0.88\textwidth]{images/web_crops/web_target_curve.png}
+    \includegraphics[width=0.78\textwidth]{images/web_crops/web_target_curve.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入目标态概率曲线截图}}
   }
@@ -86,10 +86,10 @@
 交互式操作视图适合观察门操作的顺序和类型，操作表适合检查每一步电路指令，
 标准电路图则用于和Qiskit原生绘图结果对照。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/web_circuit_view.png}{
-    \includegraphics[width=0.95\textwidth]{images/web_crops/web_circuit_view.png}
+    \includegraphics[width=0.86\textwidth]{images/web_crops/web_circuit_view.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入Qiskit电路结构页面截图}}
   }
@@ -109,10 +109,10 @@
 三维分布图说明，当电路深度和多比特门数量增加时，带噪声测量结果会偏离理想概率分布。
 目标态损耗曲线则从整体趋势上展示理想概率与带噪声频率之间的差异。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/web_noise_view.png}{
-    \includegraphics[width=0.95\textwidth]{images/web_crops/web_noise_view.png}
+    \includegraphics[width=0.86\textwidth]{images/web_crops/web_noise_view.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入理想与带噪声实验对照截图}}
   }
@@ -134,10 +134,10 @@
 
 此外，页面还展示了错误迭代或过迭代时目标概率下降的现象，并说明Grover算法的振幅放大的周期性。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
   \IfFileExists{images/web_crops/web_theory_view.png}{
-    \includegraphics[width=0.95\textwidth]{images/web_crops/web_theory_view.png}
+    \includegraphics[width=0.86\textwidth]{images/web_crops/web_theory_view.png}
   }{
     \fbox{\parbox[c][5cm][c]{0.9\textwidth}{\centering 待插入理论解释与错误迭代截图}}
   }

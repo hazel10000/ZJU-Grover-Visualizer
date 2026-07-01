@@ -80,7 +80,7 @@ def apply_diffusion(qc, n, add_barrier=True):
 
 \subsubsection{完整Grover电路构造}
 
-完整电路由Hadamard初始化和若干轮Grover迭代组成。程序在\texttt{build\_grover\_circuit}中先创建量子电路，再对全部量子比特施加Hadamard门，随后按迭代次数重复调用Oracle和Diffusion：
+完整电路由Hadamard初始化和若干轮Grover迭代组成。程序先创建量子电路，再对全部量子比特施加Hadamard门，随后按迭代次数重复调用Oracle和Diffusion：
 
 \begin{lstlisting}[language=Python]
 def build_grover_circuit(n, target, iterations,
@@ -111,7 +111,7 @@ def build_grover_circuit(n, target, iterations,
 
 \subsubsection{中间态保存}
 
-为了得到每一步后的概率幅数据，程序没有只保存最终电路，而是在\texttt{build\_grover\_history}中逐步构造电路。核心思想是：Hadamard初始化后保存一次状态；每一轮Grover迭代中，Oracle后保存一次状态，Diffusion后再保存一次状态。其流程可以概括为：
+为了得到每一步后的概率幅数据，程序没有只保存最终电路，而是逐步构造电路并记录历史状态。核心思想是：Hadamard初始化后保存一次状态；每一轮Grover迭代中，Oracle后保存一次状态，Diffusion后再保存一次状态。其流程可以概括为：
 
 \begin{lstlisting}[language=Python]
 history = []

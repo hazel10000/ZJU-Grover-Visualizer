@@ -1,23 +1,16 @@
-\documentclass[UTF8,a4paper,zihao=-4]{ctexart}
+%!TeX program = xelatex
+\documentclass[12pt,a4paper,UTF8]{ctexart}
+\usepackage{zjureport-main/zjureport}
 
-\usepackage{amsmath,amssymb,bm}
-\usepackage{booktabs}
-\usepackage{geometry}
-\usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{xcolor}
-\usepackage{listings}
-\usepackage{float}
-\usepackage{caption}
-\usepackage{subcaption}
-
-\geometry{left=2.5cm,right=2.5cm,top=2.6cm,bottom=2.6cm}
-\hypersetup{
-  colorlinks=true,
-  linkcolor=blue!60!black,
-  urlcolor=blue!60!black,
-  citecolor=blue!60!black
-}
+\setcounter{tocdepth}{2}
+\captionsetup{font=small,skip=3pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\abovedisplayskip}{6pt plus 2pt minus 2pt}
+\setlength{\belowdisplayskip}{6pt plus 2pt minus 2pt}
+\setlength{\abovedisplayshortskip}{4pt plus 2pt minus 2pt}
+\setlength{\belowdisplayshortskip}{4pt plus 2pt minus 2pt}
 
 \lstdefinestyle{codestyle}{
   basicstyle=\ttfamily\small,
@@ -31,6 +24,8 @@
   showstringspaces=false
 }
 \lstset{style=codestyle}
+
+\graphicspath{{./}{images/}{zjureport-main/figures/}{../outputs/figures/}}
 
 \newcommand{\figplaceholder}[2]{
   \begin{figure}[H]
@@ -46,13 +41,32 @@
   \end{figure}
 }
 
-\title{\bfseries Grover搜索算法可视化演示系统课程报告}
-\author{学生姓名：\underline{\hspace{4cm}} \quad 学号：\underline{\hspace{4cm}}}
+\title{
+  \vspace{3cm}
+  \heiti \Huge \textbf{量子计算课程报告}\par
+  \vspace{1cm}
+  \heiti \Large Grover搜索算法可视化演示系统
+  \vspace{3cm}
+}
+\author{
+  \vspace{0.5cm}
+  \kaishu\Large 姓名\ \dlmu[9cm]{} \qquad \\
+  \vspace{0.5cm}
+  \kaishu\Large 学号\ \dlmu[9cm]{} \qquad \\
+  \vspace{0.5cm}
+  \kaishu\Large 院所\ \dlmu[9cm]{}
+}
 \date{\today}
 
 \begin{document}
 
-\maketitle
+\cover
+\thispagestyle{empty}
+
+\newpage
+\tableofcontents
+
+\newpage
 
 \input{sections/00_abstract}
 \input{sections/01_background}

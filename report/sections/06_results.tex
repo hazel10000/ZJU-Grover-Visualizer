@@ -28,7 +28,7 @@ Hadamard初始化用于制备均匀叠加态，不计入Grover迭代次数。因
 对应测量概率为\(1/8=0.125\)。
 目标态在初始化阶段尚未被突出，随后通过Oracle相位标记与Diffusion均值倒置逐步获得更高概率幅。
 
-\begin{table}[H]
+\begin{table}[!htbp]
   \centering
   \caption{\(n=3\)、目标态\(|101\rangle\)时目标态概率幅和概率变化}
   \begin{tabular}{llll}
@@ -55,9 +55,9 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
 按照Hadamard初始化、Oracle相位翻转和Diffusion均值倒置的顺序排列；
 最后一张曲线展示多个完整迭代次数下目标态概率的变化，用于观察峰值之后的回落趋势。
 
-\begin{figure}[H]
+\begin{figure}[!htbp]
   \centering
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/00_initial_iter0_amplitude.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/00_initial_iter0_amplitude.png}
@@ -67,7 +67,7 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
     \caption{初始均匀叠加态的概率幅分布}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/01_oracle_iter1_amplitude.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/01_oracle_iter1_amplitude.png}
@@ -77,9 +77,9 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
     \caption{第1次Oracle后目标态概率幅被翻转}
   \end{subfigure}
 
-  \vspace{0.8em}
+  \vspace{0.25em}
 
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/02_diffusion_iter1_amplitude.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/02_diffusion_iter1_amplitude.png}
@@ -89,7 +89,7 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
     \caption{第1次Diffusion后目标态概率幅被放大}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/03_oracle_iter2_amplitude.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/03_oracle_iter2_amplitude.png}
@@ -99,9 +99,9 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
     \caption{第2次Oracle后目标态概率幅再次翻转}
   \end{subfigure}
 
-  \vspace{0.8em}
+  \vspace{0.25em}
 
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/04_diffusion_iter2_amplitude.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/04_diffusion_iter2_amplitude.png}
@@ -111,7 +111,7 @@ Diffusion步骤对所有概率幅执行关于平均概率幅的反演，
     \caption{第2次Diffusion后目标态概率幅继续增大}
   \end{subfigure}
   \hfill
-  \begin{subfigure}[t]{0.48\linewidth}
+  \begin{subfigure}[t]{0.45\linewidth}
     \centering
     \IfFileExists{../outputs/figures/target_probability_curve.png}{
       \includegraphics[width=\linewidth]{../outputs/figures/target_probability_curve.png}
