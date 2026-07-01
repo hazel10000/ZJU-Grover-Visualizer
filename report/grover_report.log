@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (MiKTeX 26.5) (preloaded format=xelatex 2026.6.21)  1 JUL 2026 21:59
+This is XeTeX, Version 3.141592653-2.6-0.999998 (MiKTeX 26.5) (preloaded format=xelatex 2026.6.21)  1 JUL 2026 22:34
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -770,7 +770,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 ]) (sections/02_principles.tex
 LaTeX Font Info:    Font shape `TU/SimSun(0)/m/sl' in size <12.045> not available
-(Font)              Font shape `TU/SimSun(0)/m/it' tried instead on input line 14.
+(Font)              Font shape `TU/SimSun(0)/m/it' tried instead on input line 26.
  [2] [3] [4] [5]) (sections/03_system_design.tex (D:\Program\MiKTeX\tex/latex/listings\lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
 ) (D:\Program\MiKTeX\tex/latex/listings\lstlang1.sty
@@ -814,9 +814,10 @@ Overfull \hbox (45.97086pt too wide) in paragraph at lines 114--115
 []\TU/SimSun(0)/m/n/12.045 为 了 得 到 每 一 步 后 的 概 率 幅 数 据，|  程 序 没 有 只 保 存 最 终 电 路，|  而 是 在 \TU/lmtt/m/n/12.045 build_grover_history
  []
 
-[10]) (sections/05_visualization.tex [11]
+[10]) (sections/05_visualization.tex
 File: images/web_crops/sidebar_combined.png Graphic file (type bmp)
 <images/web_crops/sidebar_combined.png>
+ [11]
 File: images/web_crops/web_step_view.png Graphic file (type bmp)
 <images/web_crops/web_step_view.png>
  [12]
@@ -858,6 +859,6 @@ Here is how much of TeX's memory you used:
  48530 multiletter control sequences out of 15000+600000
  642375 words of font info for 127 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 93i,8n,111p,491b,1858s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,8n,111p,405b,1858s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on grover_report.xdv (20 pages, 249148 bytes).
+Output written on grover_report.xdv (20 pages, 229884 bytes).
